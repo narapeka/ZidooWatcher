@@ -1,0 +1,17 @@
+general:
+  heart_rate: 500
+  log_level: INFO
+mapping_paths:
+- enable: true
+  source: /mnt/nfs/192.168.1.50#test/
+  target: test/
+- enable: true
+  source: /storage/emulated/0/CloudDrive/115/
+  target: CloudDrive/115/
+notification:
+  endpoint: http://192.168.1.71:7507/play
+  timeout_seconds: 10
+zidoo:
+  api_path: /ZidooVideoPlay/getPlayStatus
+  ip: 192.168.1.99
+  port: 9529
