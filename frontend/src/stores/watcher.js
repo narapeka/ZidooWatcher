@@ -57,6 +57,8 @@ export const useWatcherStore = defineStore('watcher', () => {
     maxRetries: 5
   })
   
+
+  
   // Computed
   const isRunning = computed(() => serviceStatus.value.is_running)
   
@@ -271,7 +273,11 @@ export const useWatcherStore = defineStore('watcher', () => {
     const addPathMapping = async (source, target, enable = true) => {
     try {
       loading.value = true
-      await axios.post('/api/mappings', { source, target, enable })
+      await axios.post('/api/mappings', { 
+        source, 
+        target, 
+        enable 
+      })
       await fetchPathMappings()
     } catch (err) {
       error.value = err.message
@@ -284,7 +290,12 @@ export const useWatcherStore = defineStore('watcher', () => {
   const removePathMapping = async (source, target) => {
     try {
       loading.value = true
-      await axios.delete('/api/mappings', { data: { source, target } })
+      await axios.delete('/api/mappings', { 
+        data: { 
+          source, 
+          target 
+        } 
+      })
       await fetchPathMappings()
     } catch (err) {
       error.value = err.message
@@ -297,7 +308,11 @@ export const useWatcherStore = defineStore('watcher', () => {
   const togglePathMapping = async (source, target, enable) => {
     try {
       loading.value = true
-      await axios.put('/api/mappings/toggle', { source, target, enable })
+      await axios.put('/api/mappings/toggle', { 
+        source, 
+        target, 
+        enable 
+      })
       await fetchPathMappings()
     } catch (err) {
       error.value = err.message

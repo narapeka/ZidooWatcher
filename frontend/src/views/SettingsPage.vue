@@ -53,7 +53,7 @@
                 <input 
                   type="text" 
                   v-model="newMapping.source" 
-                  placeholder="例如: /mnt/nfs/191.168.1.50#myShare/movie" 
+                  placeholder="例如: /mnt/nfs/192.168.1.50#myShare/movie" 
                   class="form-input"
                 >
                 <small class="form-help">芝杜播放器中的路径（详见帮助）</small>
@@ -162,7 +162,7 @@
                 >
                 <span class="input-suffix">ms</span>
               </div>
-              <small class="form-help">检查Zidoo状态的频率，建议500-2000ms</small>
+              <small class="form-help">检查Zidoo状态的频率，建议300-1000ms</small>
             </div>
             
             <div class="form-group">
@@ -209,7 +209,7 @@
                 placeholder="http://192.168.1.50:7507/play"
                 class="form-input"
               >
-              <small class="form-help">通知BlurayPoster的URL</small>
+              <small class="form-help">通知BlurayPoster的URL，格式为http://ip:7507/play</small>
             </div>
             
             <div class="form-group">

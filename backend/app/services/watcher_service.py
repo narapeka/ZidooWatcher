@@ -200,8 +200,8 @@ class WatcherService:
             # Successfully mapped - record that we're handling this video
             self.last_handled_video = video_path
             
-            # Send notification first
-            log_buffer.add_log("正在发送通知...", "INFO")
+            # Log combined action
+            log_buffer.add_log("正在发送通知并停止本机播放...", "INFO")
             
             # Create task for notification (don't await it)
             notification_task = asyncio.create_task(
@@ -234,7 +234,6 @@ class WatcherService:
         """Stop playback asynchronously"""
         try:
             logger.info("正在异步停止播放...")
-            log_buffer.add_log("正在停止本机播放...", "INFO")
             
             stop_success = await self.zidoo_client.stop_playback()
             if stop_success:
