@@ -1,5 +1,7 @@
 import asyncio
 import time
+import os
+import platform
 from typing import Optional
 from app.services.zidoo_client import ZidooClient
 from app.services.path_mapper import PathMapper
@@ -7,6 +9,31 @@ from app.services.notification_service import NotificationService
 from app.core.config import settings
 from app.core.logger import logger
 from app.core.log_buffer import log_buffer
+
+# 设置时区 - 针对不同操作系统
+if platform.system() == "Windows":
+    # Windows系统需要特殊处理
+    os.environ['TZ'] = 'Asia/Shanghai'
+    # 在Windows上，我们需要确保Python使用正确的时区
+    try:
+        import locale
+        locale.setlocale(locale.LC_TIME, 'zh_CN.UTF-8')
+    except:
+        try:
+            locale.setlocale(locale.LC_TIME, 'Chinese_China.UTF8')
+        except:
+            pass
+else:
+    # Linux/Unix系统
+    os.environ['TZ'] = 'Asia/Shanghai'
+    try:
+        time.tzset()
+    except AttributeError:
+        pass
+
+def get_utc_timestamp():
+    """获取UTC时间戳"""
+    return time.time()
 
 class WatcherService:
     def __init__(self):
@@ -129,7 +156,7 @@ class WatcherService:
                 "status": "offline",
                 "message": "Zidoo设备离线",
                 "connectivity": connectivity_state,
-                "timestamp": time.time()
+                "timestamp": get_utc_timestamp()
             }
             self.last_status = current_status
             return
@@ -140,7 +167,7 @@ class WatcherService:
                 "status": "error",
                 "message": "获取播放状态失败 - API错误",
                 "connectivity": connectivity_state,
-                "timestamp": time.time()
+                "timestamp": get_utc_timestamp()
             }
             self.last_status = current_status
             return
@@ -151,7 +178,7 @@ class WatcherService:
                 "status": "error",
                 "message": "获取播放状态失败",
                 "connectivity": connectivity_state,
-                "timestamp": time.time()
+                "timestamp": get_utc_timestamp()
             }
             self.last_status = current_status
             return
@@ -165,7 +192,7 @@ class WatcherService:
             "video_path": video_path,
             "zidoo_status": status.status,
             "connectivity": connectivity_state,
-            "timestamp": time.time()
+            "timestamp": get_utc_timestamp()
         }
         
         if is_playing and video_path:

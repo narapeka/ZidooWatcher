@@ -35,9 +35,19 @@ jobs:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
-    - name: Build Docker image
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        platforms: linux/amd64,linux/arm64
+        push: true
+        tags: |
+          narapeka/zidoowatcher:${{ env.VERSION }}
+          narapeka/zidoowatcher:latest
+        cache-from: type=local,src=/tmp/.buildx-cache
+        cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+
+    - name: Move cache
       run: |
-        docker build -t narapeka/zidoowatcher:$VERSION .
-        docker tag narapeka/zidoowatcher:$VERSION narapeka/zidoowatcher:latest
-        docker push narapeka/zidoowatcher:$VERSION
-        docker push narapeka/zidoowatcher:latest
+        rm -rf /tmp/.buildx-cache
+        mv /tmp/.buildx-cache-new /tmp/.buildx-cache

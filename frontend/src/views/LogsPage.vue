@@ -153,7 +153,16 @@ const downloadLogs = () => {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `zidoo-watcher-logs-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.txt`
+  const now = new Date()
+  const timestamp = now.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  }).replace(/[/:]/g, '-').replace(/\s/g, '_')
+  a.download = `zidoo-watcher-logs-${timestamp}.txt`
   document.body.appendChild(a)
   a.click()
   document.body.removeChild(a)
@@ -162,12 +171,34 @@ const downloadLogs = () => {
 
 const formatLogTime = (timestamp) => {
   try {
-    if (typeof timestamp === 'string') {
-      return new Date(timestamp).toLocaleTimeString()
+    // 直接使用浏览器本地时区
+    const date = new Date(timestamp * 1000)
+    const now = new Date()
+    const diffMs = now - date
+    const diffMins = Math.floor(diffMs / (1000 * 60))
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+    
+    if (diffMins < 1) {
+      return '刚刚'
+    } else if (diffMins < 60) {
+      return `${diffMins}分钟前`
+    } else if (diffHours < 24) {
+      return `${diffHours}小时前`
+    } else if (diffDays < 7) {
+      return `${diffDays}天前`
+    } else {
+      // 超过7天显示具体时间（使用浏览器本地时区）
+      return date.toLocaleString('zh-CN', {
+        month: 'numeric',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
     }
-    return new Date(timestamp).toLocaleTimeString()
   } catch (error) {
-    return '时间格式错误'
+    console.error('时间格式化错误:', error)
+    return '时间错误'
   }
 }
 
@@ -251,12 +282,9 @@ onUnmounted(() => {
 .page-title {
   font-size: 1.5rem;
   font-weight: 700;
-  color: white;
+  color: #ffffff;
   margin: 0;
-  background: linear-gradient(135deg, #fff, #e2e8f0);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .header-actions {

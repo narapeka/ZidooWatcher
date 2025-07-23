@@ -431,12 +431,9 @@ onMounted(async () => {
 .page-title {
   font-size: 1.5rem;
   font-weight: 700;
-  color: white;
+  color: #ffffff;
   margin: 0;
-  background: linear-gradient(135deg, #fff, #e2e8f0);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .header-actions {

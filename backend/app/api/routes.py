@@ -7,6 +7,29 @@ from app.services.watcher_service import WatcherService
 from app.services.path_mapper import PathMapper
 from app.core.log_buffer import log_buffer
 import time
+import os
+import platform
+
+# 设置时区 - 针对不同操作系统
+if platform.system() == "Windows":
+    # Windows系统需要特殊处理
+    os.environ['TZ'] = 'Asia/Shanghai'
+    # 在Windows上，我们需要确保Python使用正确的时区
+    try:
+        import locale
+        locale.setlocale(locale.LC_TIME, 'zh_CN.UTF-8')
+    except:
+        try:
+            locale.setlocale(locale.LC_TIME, 'Chinese_China.UTF8')
+        except:
+            pass
+else:
+    # Linux/Unix系统
+    os.environ['TZ'] = 'Asia/Shanghai'
+    try:
+        time.tzset()
+    except AttributeError:
+        pass
 
 # Global instances (will be set by main.py)
 watcher_service: WatcherService = None
@@ -240,7 +263,7 @@ async def get_current_status():
             "success": True,
             "service_status": service_status,
             "current_status": player_status,
-            "timestamp": time.time()
+            "timestamp": time.time()  # 使用UTC时间戳
         }
     except Exception as e:
         logger.error(f"Error getting current status: {e}")

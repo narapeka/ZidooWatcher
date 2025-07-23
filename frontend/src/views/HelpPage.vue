@@ -116,8 +116,9 @@
 .page-title {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #f1f5f9;
+  color: #ffffff;
   margin: 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .help-content {
