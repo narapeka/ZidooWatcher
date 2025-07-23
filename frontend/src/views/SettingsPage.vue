@@ -178,7 +178,7 @@
             </div>
             
             <div class="form-group">
-              <label class="form-label">IP 地址</label>
+              <label class="form-label">芝杜IP地址</label>
               <input 
                 type="text" 
                 v-model="zidooIp" 
@@ -202,14 +202,14 @@
             </div>
             
             <div class="form-group">
-              <label class="form-label">通知端点</label>
+              <label class="form-label">通知IP地址</label>
               <input 
-                type="url" 
-                v-model="notificationEndpoint" 
-                placeholder="http://192.168.1.50:7507/play"
+                type="text" 
+                v-model="notificationIp" 
+                placeholder="192.168.1.50"
                 class="form-input"
               >
-              <small class="form-help">通知BlurayPoster的URL，格式为http://ip:7507/play</small>
+              <small class="form-help">BlurayPoster的IP地址</small>
             </div>
             
             <div class="form-group">
@@ -287,7 +287,7 @@ const heartRate = computed({
 })
 
 const logLevel = computed({
-  get: () => config.value?.general?.log_level || 'DEBUG',
+  get: () => config.value?.general?.log_level || 'INFO',
   set: (value) => {
     if (!store.config) store.config = {}
     if (!store.config.general) store.config.general = {}
@@ -313,12 +313,23 @@ const zidooPort = computed({
   }
 })
 
-const notificationEndpoint = computed({
-  get: () => config.value?.notification?.endpoint || 'http://192.168.1.50:7507/play',
+const notificationIp = computed({
+  get: () => {
+    const endpoint = config.value?.notification?.endpoint || 'http://192.168.1.50:7507/play'
+    // 从完整URL中提取IP地址
+    const match = endpoint.match(/http:\/\/([^:]+):\d+\/play/)
+    return match ? match[1] : '192.168.1.50'
+  },
   set: (value) => {
     if (!store.config) store.config = {}
     if (!store.config.notification) store.config.notification = {}
-    store.config.notification.endpoint = value
+    // 自动拼接端口和路径
+    const cleanIp = value.trim()
+    if (cleanIp) {
+      store.config.notification.endpoint = `http://${cleanIp}:7507/play`
+    } else {
+      store.config.notification.endpoint = 'http://192.168.1.50:7507/play'
+    }
   }
 })
 

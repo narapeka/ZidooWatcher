@@ -27,7 +27,7 @@ export const useWatcherStore = defineStore('watcher', () => {
     general: {
       enable_watcher: true,
       heart_rate: 500,
-      log_level: 'DEBUG'
+      log_level: 'INFO'
     },
     zidoo: {
       ip: '192.168.1.99',

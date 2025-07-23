@@ -6,7 +6,7 @@ from pathlib import Path
 
 class GeneralConfig(BaseModel):
     heart_rate: int = 500
-    log_level: str = "DEBUG"
+    log_level: str = "INFO"
 
 class ZidooConfig(BaseModel):
     ip: str = "192.168.1.99"
