@@ -138,6 +138,8 @@
   padding: 1rem 2rem;
   max-width: 1200px;
   margin: 0 auto;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .page-header {
@@ -350,12 +352,19 @@ code {
   padding: 0.25rem 0.5rem;
   border-radius: 0.25rem;
   border: 1px solid rgba(59, 130, 246, 0.3);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+  display: inline-block;
+  box-sizing: border-box;
 }
 
 /* Responsive Design */
 @media (max-width: 768px) {
   .help-page {
     padding: 1rem;
+    max-width: 100%;
+    overflow-x: hidden;
   }
   
   .page-header {
@@ -369,6 +378,8 @@ code {
   
   .help-section {
     padding: 1.5rem;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
   }
   
   .section-title {
@@ -391,24 +402,50 @@ code {
   
   .step-title {
     font-size: 1.125rem;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+  
+  .step-description {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
   }
   
   .sub-step {
     padding: 1rem;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
   }
   
   .sub-step-title {
     font-size: 1rem;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+  
+  .sub-step-description {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
   }
   
   .example {
     padding: 0.75rem;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+  
+  code {
+    word-break: break-all;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
   }
 }
 
 @media (max-width: 480px) {
   .help-page {
     padding: 0.75rem;
+    max-width: 100%;
+    overflow-x: hidden;
   }
   
   .page-title {
@@ -417,11 +454,15 @@ code {
   
   .help-section {
     padding: 1rem;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
   }
   
   .section-title {
     font-size: 1.125rem;
     margin-bottom: 1rem;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
   }
   
   .step-item {
@@ -437,10 +478,14 @@ code {
   
   .step-title {
     font-size: 1rem;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
   }
   
   .step-description {
     font-size: 0.9rem;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
   }
   
   .sub-steps {
@@ -449,43 +494,66 @@ code {
   
   .sub-step {
     padding: 0.75rem;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
   }
   
   .sub-step-title {
     font-size: 0.95rem;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
   }
   
   .sub-step-description {
     font-size: 0.875rem;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
   }
   
   .sub-sub-step {
     padding: 0.75rem;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
   }
   
   .sub-sub-step-title {
     font-size: 0.9rem;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
   }
   
   .sub-sub-sub-step {
     padding: 0.5rem;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
   }
   
   .sub-sub-sub-step-title {
     font-size: 0.85rem;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
   }
   
   .example {
     padding: 0.5rem;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
   }
   
   .example-content p {
     font-size: 0.8rem;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
   }
   
   code {
     font-size: 0.8rem;
     padding: 0.2rem 0.4rem;
+    word-break: break-all;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+    max-width: 100%;
+    display: inline-block;
   }
 }
 </style> 
