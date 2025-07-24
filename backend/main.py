@@ -9,6 +9,7 @@ import os
 import sys
 import time
 import platform
+import logging
 
 # 设置时区 - 针对不同操作系统
 if platform.system() == "Windows":
@@ -41,6 +42,9 @@ from app.services.watcher_service import WatcherService
 
 # Global instances
 watcher_service = None
+
+# 禁用uvicorn的访问日志，减少轮询请求的日志输出
+logging.getLogger("uvicorn.access").setLevel(logging.ERROR)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -82,7 +86,7 @@ fastapi_app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include API routes
+# Include API routes FIRST (before static files)
 fastapi_app.include_router(api_router, prefix="/api")
 
 # Serve frontend static files
@@ -94,23 +98,11 @@ if os.path.exists(frontend_dist):
     # Mount static files
     fastapi_app.mount("/", StaticFiles(directory=frontend_dist, html=True), name="static")
     
-    # Add SPA fallback route - 处理所有未匹配的路由
-    @fastapi_app.get("/{full_path:path}")
-    async def spa_fallback(full_path: str):
-        # Skip API routes
-        if full_path.startswith("api/"):
-            raise HTTPException(status_code=404, detail="API endpoint not found")
-        
-        # Skip static assets
-        if full_path.startswith("assets/") or full_path in ["favicon.ico", "robots.txt"]:
-            raise HTTPException(status_code=404, detail="Static file not found")
-        
-        # Serve index.html for all other routes (SPA routing)
-        index_path = os.path.join(frontend_dist, "index.html")
-        if os.path.exists(index_path):
-            return FileResponse(index_path)
-        else:
-            raise HTTPException(status_code=404, detail="Frontend not found")
+    # 注意：StaticFiles的html=True参数已经提供了SPA fallback功能
+    # 当请求的文件不存在时，会自动返回index.html
+    # 所以不需要额外的SPA fallback路由
+else:
+    logger.warning(f"Frontend dist directory not found: {frontend_dist}")
 
 if __name__ == "__main__":
     uvicorn.run(
@@ -118,5 +110,5 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=7502,
         reload=True,
-        log_level="warning"  # 固定使用WARNING级别，减少API请求日志
+        log_level="error"  # 改为ERROR级别，只显示错误日志，减少轮询请求的日志输出
     ) 
