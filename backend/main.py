@@ -95,12 +95,26 @@ if not os.path.exists(frontend_dist):
     frontend_dist = "./frontend/dist"  # Docker 环境路径
 
 if os.path.exists(frontend_dist):
-    # Mount static files
-    fastapi_app.mount("/", StaticFiles(directory=frontend_dist, html=True), name="static")
+    # Mount static files for assets (CSS, JS, images, etc.)
+    fastapi_app.mount("/assets", StaticFiles(directory=os.path.join(frontend_dist, "assets")), name="assets")
     
-    # 注意：StaticFiles的html=True参数已经提供了SPA fallback功能
-    # 当请求的文件不存在时，会自动返回index.html
-    # 所以不需要额外的SPA fallback路由
+    # SPA fallback route - 处理所有前端路由
+    @fastapi_app.get("/{full_path:path}")
+    async def spa_fallback(full_path: str):
+        # Skip API routes
+        if full_path.startswith("api/"):
+            raise HTTPException(status_code=404, detail="API endpoint not found")
+        
+        # Skip static assets (already handled by mount)
+        if full_path.startswith("assets/"):
+            raise HTTPException(status_code=404, detail="Static file not found")
+        
+        # For all other routes, serve index.html (SPA routing)
+        index_path = os.path.join(frontend_dist, "index.html")
+        if os.path.exists(index_path):
+            return FileResponse(index_path)
+        else:
+            raise HTTPException(status_code=404, detail="Frontend not found")
 else:
     logger.warning(f"Frontend dist directory not found: {frontend_dist}")
 
