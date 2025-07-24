@@ -7,11 +7,23 @@ from pathlib import Path
 class GeneralConfig(BaseModel):
     heart_rate: int = 500
     log_level: str = "INFO"
+    
+    def __init__(self, **data):
+        super().__init__(**data)
+        # 确保心跳频率在安全范围内
+        if self.heart_rate < 200:
+            self.heart_rate = 200  # 最小200ms
+        elif self.heart_rate > 2000:
+            self.heart_rate = 2000  # 最大2秒
 
 class ZidooConfig(BaseModel):
     ip: str = "192.168.1.99"
-    port: int = 9529
     api_path: str = "/ZidooVideoPlay/getPlayStatus"
+    
+    @property
+    def port(self) -> int:
+        """端口固定为9529"""
+        return 9529
 
 class PathMapping(BaseModel):
     source: str
@@ -22,11 +34,18 @@ class NotificationConfig(BaseModel):
     endpoint: str = "http://192.168.1.50:7507/play"
     timeout_seconds: int = 10
 
+class ExtensionMonitoringConfig(BaseModel):
+    bdmv: bool = True
+    iso: bool = True
+    mkv: bool = False
+    mp4: bool = False
+
 class Settings(BaseModel):
     general: GeneralConfig = GeneralConfig()
     zidoo: ZidooConfig = ZidooConfig()
     mapping_paths: List[PathMapping] = []
     notification: NotificationConfig = NotificationConfig()
+    extension_monitoring: ExtensionMonitoringConfig = ExtensionMonitoringConfig()
 
     @classmethod
     def load_from_file(cls, config_path: str = None) -> "Settings":
@@ -85,7 +104,7 @@ class Settings(BaseModel):
         try:
             os.makedirs(os.path.dirname(config_path), exist_ok=True)
             with open(config_path, 'w', encoding='utf-8') as f:
-                yaml.dump(self.dict(), f, default_flow_style=False, allow_unicode=True)
+                yaml.dump(self.model_dump(), f, default_flow_style=False, allow_unicode=True)
         except Exception as e:
             print(f"Error saving config to {config_path}: {e}")
 

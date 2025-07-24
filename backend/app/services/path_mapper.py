@@ -5,7 +5,7 @@ import os
 
 class PathMapper:
     def __init__(self):
-        self.mappings = settings.mapping_paths
+        pass  # 不再在初始化时读取配置
     
     def _normalize_path(self, path: str) -> str:
         """
@@ -132,6 +132,10 @@ class PathMapper:
         logger.debug(f"未找到匹配的路径映射: {original_normalized}")
         return None
 
+    def _get_current_mappings(self):
+        """获取当前最新的路径映射配置 - 直接从内存读取，不重新加载文件"""
+        return settings.mapping_paths
+
     def check_path_mapping_status(self, original_path: str) -> Tuple[Optional[str], str]:
         """
         Check path mapping status and return detailed information
@@ -142,9 +146,11 @@ class PathMapper:
             
         logger.debug(f"检查路径映射状态: {original_path}")
         
+        # 每次检查时都重新获取最新配置
+        current_mappings = self._get_current_mappings()
         disabled_matches = []
         
-        for mapping in self.mappings:
+        for mapping in current_mappings:
             source = mapping.source
             target = mapping.target
             
@@ -179,36 +185,40 @@ class PathMapper:
         
         # 保持用户输入的原始格式
         new_mapping = PathMapping(source=source, target=target, enable=enable)
-        self.mappings.append(new_mapping)
-        settings.mapping_paths = self.mappings
+        current_mappings = self._get_current_mappings()
+        current_mappings.append(new_mapping)
+        settings.mapping_paths = current_mappings
         logger.info(f"已添加路径映射: {source} -> {target} (启用: {enable})")
     
     def remove_mapping(self, source: str, target: str):
         """Remove a path mapping"""
+        current_mappings = self._get_current_mappings()
         # 使用智能匹配，不依赖精确的路径格式
-        for i, mapping in enumerate(self.mappings):
+        for i, mapping in enumerate(current_mappings):
             # 标准化比较
             if (self._normalize_path(mapping.source) == self._normalize_path(source) and 
                 self._normalize_path(mapping.target) == self._normalize_path(target)):
-                del self.mappings[i]
-                settings.mapping_paths = self.mappings
+                del current_mappings[i]
+                settings.mapping_paths = current_mappings
                 logger.info(f"已删除路径映射: {source} -> {target}")
                 return
         logger.warning(f"未找到路径映射: {source} -> {target}")
     
     def toggle_mapping(self, source: str, target: str, enable: bool):
         """Toggle mapping enable/disable status"""
+        current_mappings = self._get_current_mappings()
         # 使用智能匹配，不依赖精确的路径格式
-        for mapping in self.mappings:
+        for mapping in current_mappings:
             # 标准化比较
             if (self._normalize_path(mapping.source) == self._normalize_path(source) and 
                 self._normalize_path(mapping.target) == self._normalize_path(target)):
                 mapping.enable = enable
-                settings.mapping_paths = self.mappings
+                settings.mapping_paths = current_mappings
                 logger.info(f"路径映射状态已切换: {source} -> {target} (启用: {enable})")
                 return
         logger.warning(f"未找到路径映射: {source} -> {target}")
     
     def get_all_mappings(self):
         """Get all current path mappings"""
-        return [{"source": m.source, "target": m.target, "enable": m.enable} for m in self.mappings] 
+        current_mappings = self._get_current_mappings()
+        return [{"source": m.source, "target": m.target, "enable": m.enable} for m in current_mappings] 

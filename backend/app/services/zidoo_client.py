@@ -1,5 +1,6 @@
 import httpx
 import asyncio
+import time
 from typing import Optional, Tuple
 from app.models.zidoo_models import ZidooPlayStatus
 from app.core.config import settings
@@ -12,6 +13,8 @@ class ZidooClient:
         self.timeout = httpx.Timeout(10.0)
         self.is_device_online = True  # Track device connectivity
         self.consecutive_errors = 0   # Track consecutive connection errors
+        self.last_request_time = 0    # Track last request time for rate limiting
+        self.min_request_interval = 0.2  # 最小请求间隔200ms，防止DDOS
         
     async def get_play_status(self) -> Tuple[Optional[ZidooPlayStatus], str]:
         """
@@ -19,6 +22,15 @@ class ZidooClient:
         Returns: (status_object, connection_state)
         connection_state: "online", "offline", "error"
         """
+        # 频率限制：确保请求间隔不小于最小间隔
+        current_time = time.time()
+        time_since_last_request = current_time - self.last_request_time
+        if time_since_last_request < self.min_request_interval:
+            sleep_time = self.min_request_interval - time_since_last_request
+            logger.debug(f"频率限制：等待 {sleep_time:.3f}秒")
+            await asyncio.sleep(sleep_time)
+        
+        self.last_request_time = time.time()
         url = f"{self.base_url}{self.api_path}"
         
         try:

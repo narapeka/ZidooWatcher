@@ -60,4 +60,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:7502/api/health || exit 1
 
 # 启动命令 - 使用 uvicorn 直接启动，生产环境优化
-CMD ["uvicorn", "backend.main:fastapi_app", "--host", "0.0.0.0", "--port", "7502", "--workers", "1"] 
+CMD ["uvicorn", "backend.main:fastapi_app", "--host", "0.0.0.0", "--port", "7502", "--workers", "1", "--log-level", "warning"] 

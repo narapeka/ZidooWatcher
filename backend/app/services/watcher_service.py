@@ -111,12 +111,18 @@ class WatcherService:
                 await self._check_play_status()
                 
                 # Wait for the configured heartbeat interval
-                # Use a shorter sleep interval to check is_running more frequently
-                for _ in range(settings.general.heart_rate // 100):  # Check every 100ms
-                    if not self.is_running:
-                        logger.info("心跳循环在睡眠期间停止")
-                        break
-                    await asyncio.sleep(0.1)
+                # 修复：使用更精确的睡眠控制，避免整数除法精度问题
+                heart_rate_ms = settings.general.heart_rate
+                if heart_rate_ms < 200:
+                    # 如果设置的心跳频率小于200ms，使用设置值
+                    await asyncio.sleep(heart_rate_ms / 1000.0)
+                else:
+                    # 对于大于等于200ms的设置，使用分段睡眠以便及时响应停止信号
+                    remaining_ms = heart_rate_ms
+                    while remaining_ms > 0 and self.is_running:
+                        sleep_ms = min(100, remaining_ms)  # 最多睡眠100ms
+                        await asyncio.sleep(sleep_ms / 1000.0)
+                        remaining_ms -= sleep_ms
                 
             except asyncio.CancelledError:
                 logger.info("心跳循环已取消")
@@ -220,6 +226,12 @@ class WatcherService:
         logger.info(f"新视频开始播放: {title}")
         log_buffer.add_log(f"新视频开始播放: {title} ({video_path})", "INFO")
         
+        # Check if the file extension is enabled for monitoring
+        if not self._is_extension_enabled(video_path):
+            logger.info(f"文件扩展名未启用监控: {video_path}")
+            log_buffer.add_log(f"文件扩展名未启用监控，跳过处理: {video_path}", "INFO")
+            return
+        
         # Check path mapping with detailed status
         mapped_path, mapping_status = self.path_mapper.check_path_mapping_status(video_path)
         
@@ -270,3 +282,36 @@ class WatcherService:
         except Exception as e:
             logger.error(f"停止播放时出错: {e}")
             log_buffer.add_log(f"停止本机播放时出错: {e}", "ERROR") 
+
+    def _is_extension_enabled(self, video_path: str) -> bool:
+        """Check if the file extension is enabled for monitoring"""
+        if not video_path:
+            return False
+        
+        # Get extension monitoring settings
+        ext_config = settings.extension_monitoring
+        
+        # Check for specific file extensions first
+        path_lower = video_path.lower()
+        
+        if path_lower.endswith('.iso'):
+            return ext_config.iso
+        elif path_lower.endswith('.mkv'):
+            return ext_config.mkv
+        elif path_lower.endswith('.mp4'):
+            return ext_config.mp4
+        
+        # Check for other common video extensions
+        video_extensions = [
+            '.avi', '.mov', '.wmv', '.flv', '.webm', '.m4v', '.3gp', '.ogv',
+            '.ts', '.mts', '.m2ts', '.vob', '.asf', '.rm', '.rmvb', '.divx',
+            '.xvid', '.h264', '.h265', '.hevc', '.vp8', '.vp9', '.av1'
+        ]
+        
+        for ext in video_extensions:
+            if path_lower.endswith(ext):
+                # 如果是其他视频扩展名，禁用监控
+                return False
+        
+        # 如果不是任何已知的视频扩展名，视为文件夹（BDMV）
+        return ext_config.bdmv 

@@ -90,6 +90,89 @@
           </div>
         </div>
       </div>
+
+      <!-- Extension Monitoring Card -->
+      <div class="card extension-monitoring-card">
+        <div class="card-header">
+          <h3>监控扩展名</h3>
+        </div>
+        
+        <div class="card-content">
+          <div class="extension-list">
+            <div class="extension-item">
+              <div class="extension-info">
+                <div class="extension-name">BDMV</div>
+                <div class="extension-desc">蓝光文件夹</div>
+              </div>
+              <div class="extension-toggle">
+                <label class="switch">
+                  <input 
+                    type="checkbox" 
+                    :checked="config.extension_monitoring?.bdmv"
+                    @change="toggleExtension('bdmv', $event.target.checked)"
+                    :disabled="loading"
+                  >
+                  <span class="switch-slider"></span>
+                </label>
+              </div>
+            </div>
+            
+            <div class="extension-item">
+              <div class="extension-info">
+                <div class="extension-name">ISO</div>
+                <div class="extension-desc">光盘镜像</div>
+              </div>
+              <div class="extension-toggle">
+                <label class="switch">
+                  <input 
+                    type="checkbox" 
+                    :checked="config.extension_monitoring?.iso"
+                    @change="toggleExtension('iso', $event.target.checked)"
+                    :disabled="loading"
+                  >
+                  <span class="switch-slider"></span>
+                </label>
+              </div>
+            </div>
+            
+            <div class="extension-item">
+              <div class="extension-info">
+                <div class="extension-name">MKV</div>
+                <div class="extension-desc">Matroska视频</div>
+              </div>
+              <div class="extension-toggle">
+                <label class="switch">
+                  <input 
+                    type="checkbox" 
+                    :checked="config.extension_monitoring?.mkv"
+                    @change="toggleExtension('mkv', $event.target.checked)"
+                    :disabled="loading"
+                  >
+                  <span class="switch-slider"></span>
+                </label>
+              </div>
+            </div>
+            
+            <div class="extension-item">
+              <div class="extension-info">
+                <div class="extension-name">MP4</div>
+                <div class="extension-desc">MPEG-4视频</div>
+              </div>
+              <div class="extension-toggle">
+                <label class="switch">
+                  <input 
+                    type="checkbox" 
+                    :checked="config.extension_monitoring?.mp4"
+                    @change="toggleExtension('mp4', $event.target.checked)"
+                    :disabled="loading"
+                  >
+                  <span class="switch-slider"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Error Modal -->
@@ -132,6 +215,10 @@ const stopService = () => store.stopService()
 
 const toggleMapping = (source, target, enable) => {
   store.togglePathMapping(source, target, enable)
+}
+
+const toggleExtension = (extension, enable) => {
+  store.toggleExtensionMonitoring(extension, enable)
 }
 
 const clearError = () => {
@@ -206,7 +293,7 @@ onUnmounted(() => {
 
 <style scoped>
 .dashboard-page {
-  max-width: 1400px;
+  width: 100%;
   margin: 0 auto;
 }
 
@@ -460,6 +547,51 @@ onUnmounted(() => {
 }
 
 .mapping-toggle {
+  display: flex;
+  align-items: center;
+}
+
+/* Extension Monitoring Card */
+.extension-list {
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.extension-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.6);
+  border-radius: 0.5rem;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  flex: 1;
+  min-width: 0;
+}
+
+.extension-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.extension-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #f1f5f9;
+}
+
+.extension-desc {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.extension-toggle {
   display: flex;
   align-items: center;
 }
@@ -728,6 +860,28 @@ input:disabled + .switch-slider {
   
   .mapping-toggle {
     justify-content: center;
+  }
+  
+  .extension-list {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .extension-item {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+  }
+  
+  .extension-info {
+    flex-direction: column;
+    gap: 0.25rem;
+    flex: 1;
+  }
+  
+  .extension-toggle {
+    justify-content: flex-end;
   }
 }
 

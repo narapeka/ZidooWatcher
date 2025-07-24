@@ -1,9 +1,10 @@
 import asyncio
 import uvicorn
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 import os
 import sys
 import time
@@ -90,7 +91,26 @@ if not os.path.exists(frontend_dist):
     frontend_dist = "./frontend/dist"  # Docker 环境路径
 
 if os.path.exists(frontend_dist):
+    # Mount static files
     fastapi_app.mount("/", StaticFiles(directory=frontend_dist, html=True), name="static")
+    
+    # Add SPA fallback route - 处理所有未匹配的路由
+    @fastapi_app.get("/{full_path:path}")
+    async def spa_fallback(full_path: str):
+        # Skip API routes
+        if full_path.startswith("api/"):
+            raise HTTPException(status_code=404, detail="API endpoint not found")
+        
+        # Skip static assets
+        if full_path.startswith("assets/") or full_path in ["favicon.ico", "robots.txt"]:
+            raise HTTPException(status_code=404, detail="Static file not found")
+        
+        # Serve index.html for all other routes (SPA routing)
+        index_path = os.path.join(frontend_dist, "index.html")
+        if os.path.exists(index_path):
+            return FileResponse(index_path)
+        else:
+            raise HTTPException(status_code=404, detail="Frontend not found")
 
 if __name__ == "__main__":
     uvicorn.run(
@@ -98,5 +118,5 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=7502,
         reload=True,
-        log_level=settings.general.log_level.lower()
+        log_level="warning"  # 固定使用WARNING级别，减少API请求日志
     ) 

@@ -77,11 +77,17 @@ async def get_connectivity_status():
 @api_router.get("/config", response_model=Dict[str, Any])
 async def get_config():
     """Get current configuration"""
-    return {
-        "general": settings.general.dict(),
-        "zidoo": settings.zidoo.dict(),
-        "notification": settings.notification.dict()
+    # 构建配置响应，不包含端口（因为端口固定为9529）
+    config_response = {
+        "general": settings.general.model_dump(),
+        "zidoo": {
+            "ip": settings.zidoo.ip,
+            "api_path": settings.zidoo.api_path
+        },
+        "notification": settings.notification.model_dump(),
+        "extension_monitoring": settings.extension_monitoring.model_dump()
     }
+    return config_response
 
 @api_router.post("/config", response_model=Dict[str, Any])
 async def update_config(config_data: Dict[str, Any]):
@@ -96,6 +102,9 @@ async def update_config(config_data: Dict[str, Any]):
         # Update zidoo settings
         if "zidoo" in config_data:
             for key, value in config_data["zidoo"].items():
+                # 跳过端口设置，因为端口固定为9529
+                if key == "port":
+                    continue
                 if hasattr(settings.zidoo, key):
                     setattr(settings.zidoo, key, value)
         
@@ -104,6 +113,12 @@ async def update_config(config_data: Dict[str, Any]):
             for key, value in config_data["notification"].items():
                 if hasattr(settings.notification, key):
                     setattr(settings.notification, key, value)
+        
+        # Update extension monitoring settings
+        if "extension_monitoring" in config_data:
+            for key, value in config_data["extension_monitoring"].items():
+                if hasattr(settings.extension_monitoring, key):
+                    setattr(settings.extension_monitoring, key, value)
         
         # Save configuration
         settings.save_to_file()
@@ -114,6 +129,30 @@ async def update_config(config_data: Dict[str, Any]):
     except Exception as e:
         logger.error(f"Error updating configuration: {e}")
         raise HTTPException(status_code=500, detail=f"Error updating configuration: {e}")
+
+# Extension monitoring endpoints
+@api_router.get("/extension-monitoring", response_model=Dict[str, Any])
+async def get_extension_monitoring():
+    """Get extension monitoring configuration"""
+    return settings.extension_monitoring.model_dump()
+
+@api_router.put("/extension-monitoring", response_model=Dict[str, Any])
+async def update_extension_monitoring(extension_data: Dict[str, bool]):
+    """Update extension monitoring configuration"""
+    try:
+        for key, value in extension_data.items():
+            if hasattr(settings.extension_monitoring, key):
+                setattr(settings.extension_monitoring, key, value)
+        
+        # Save configuration
+        settings.save_to_file()
+        
+        logger.info("Extension monitoring configuration updated")
+        return {"success": True, "message": "扩展名监控配置已更新"}
+        
+    except Exception as e:
+        logger.error(f"Error updating extension monitoring configuration: {e}")
+        raise HTTPException(status_code=500, detail=f"更新扩展名监控配置时出错: {e}")
 
 # Path mapping endpoints
 @api_router.get("/mappings", response_model=List[Dict[str, Any]])

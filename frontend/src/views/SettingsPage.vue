@@ -45,7 +45,13 @@
 
         <!-- Add New Mapping -->
         <div class="mapping-form">
-          <div class="form-title">{{ editingIndex !== -1 ? '编辑映射' : '添加新映射' }}</div>
+          <div class="form-title-container">
+            <div class="form-title">{{ editingIndex !== -1 ? '编辑映射' : '添加新映射' }}</div>
+            <router-link to="/help" class="help-link">
+              <span class="help-icon">?</span>
+              查看映射说明
+            </router-link>
+          </div>
           <div class="form-container">
             <div class="form-inputs">
               <div class="form-group">
@@ -66,7 +72,7 @@
                   placeholder="例如：myNAS/myShare/movie" 
                   class="form-input"
                 >
-                <small class="form-help">BlurayPoster中的Media路径</small>
+                <small class="form-help">蓝光机可识别路径，或者BlurayPoster中的Media路径</small>
               </div>
             </div>
             <div class="form-actions">
@@ -149,34 +155,7 @@
         <div class="settings-form">
                     <!-- System Settings Grid -->
           <div class="settings-grid">
-            <div class="form-group">
-              <label class="form-label">心跳频率</label>
-              <div class="input-group">
-                <input 
-                  type="number" 
-                  v-model="heartRate" 
-                  min="100" 
-                  max="10000"
-                  step="100"
-                  class="form-input"
-                >
-                <span class="input-suffix">ms</span>
-              </div>
-              <small class="form-help">检查Zidoo状态的频率，建议300-1000ms</small>
-            </div>
-            
-            <div class="form-group">
-              <label class="form-label">日志级别</label>
-              <select v-model="logLevel" class="form-select">
-                <option value="DEBUG">DEBUG - 详细调试信息</option>
-                <option value="INFO">INFO - 一般信息</option>
-                <option value="WARNING">WARNING - 警告信息</option>
-                <option value="ERROR">ERROR - 错误信息</option>
-                <option value="CRITICAL">CRITICAL - 严重错误</option>
-              </select>
-              <small class="form-help">控制日志输出的详细程度</small>
-            </div>
-            
+            <!-- 第一列 -->
             <div class="form-group">
               <label class="form-label">芝杜IP地址</label>
               <input 
@@ -190,17 +169,22 @@
             </div>
             
             <div class="form-group">
-              <label class="form-label">端口</label>
-              <input 
-                type="number" 
-                v-model="zidooPort" 
-                min="1" 
-                max="65535"
-                class="form-input"
-              >
-              <small class="form-help">Zidoo API端口，默认9529</small>
+              <label class="form-label">心跳频率</label>
+              <div class="input-group">
+                <input 
+                  type="number" 
+                  v-model="heartRate" 
+                  min="200" 
+                  max="2000"
+                  step="100"
+                  class="form-input"
+                >
+                <span class="input-suffix">ms</span>
+              </div>
+              <small class="form-help">检查Zidoo状态的频率，最小200ms，最大2000ms</small>
             </div>
             
+            <!-- 第二行 -->
             <div class="form-group">
               <label class="form-label">通知IP地址</label>
               <input 
@@ -225,6 +209,19 @@
                 <span class="input-suffix">秒</span>
               </div>
               <small class="form-help">通知超时时间</small>
+            </div>
+            
+            <!-- 第三行 -->
+            <div class="form-group">
+              <label class="form-label">日志级别</label>
+              <select v-model="logLevel" class="form-select">
+                <option value="DEBUG">DEBUG - 详细调试信息</option>
+                <option value="INFO">INFO - 一般信息</option>
+                <option value="WARNING">WARNING - 警告信息</option>
+                <option value="ERROR">ERROR - 错误信息</option>
+                <option value="CRITICAL">CRITICAL - 严重错误</option>
+              </select>
+              <small class="form-help">控制日志输出的详细程度</small>
             </div>
           </div>
         </div>
@@ -304,14 +301,7 @@ const zidooIp = computed({
   }
 })
 
-const zidooPort = computed({
-  get: () => config.value?.zidoo?.port || 9529,
-  set: (value) => {
-    if (!store.config) store.config = {}
-    if (!store.config.zidoo) store.config.zidoo = {}
-    store.config.zidoo.port = parseInt(value)
-  }
-})
+// 端口固定为9529，不需要用户配置
 
 const notificationIp = computed({
   get: () => {
@@ -417,7 +407,7 @@ onMounted(async () => {
 
 <style scoped>
 .settings-page {
-  max-width: 1200px;
+  width: 100%;
   margin: 0 auto;
 }
 
@@ -521,6 +511,7 @@ onMounted(async () => {
 /* Tab Content */
 .tab-content {
   animation: fadeIn 0.3s ease;
+  width: 100%;
 }
 
 @keyframes fadeIn {
@@ -536,6 +527,7 @@ onMounted(async () => {
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   border: 1px solid rgba(148, 163, 184, 0.2);
   overflow: hidden;
+  width: 100%;
 }
 
 
@@ -545,6 +537,7 @@ onMounted(async () => {
 .mapping-form {
   padding: 2rem;
   max-width: none;
+  width: 100%;
 }
 
 .section-card > .settings-form:first-child,
@@ -553,7 +546,8 @@ onMounted(async () => {
 }
 
 .form-container {
-  max-width: 800px;
+  max-width: none;
+  width: 100%;
 }
 
 .settings-grid {
@@ -561,14 +555,65 @@ onMounted(async () => {
   grid-template-columns: 1fr 1fr;
   grid-template-rows: repeat(3, auto);
   gap: 2rem;
-  max-width: 900px;
+  width: 100%;
+}
+
+/* 响应式布局 */
+@media (max-width: 768px) {
+  .settings-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(5, auto);
+  }
+}
+
+.form-title-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
 }
 
 .form-title {
   font-size: 1.25rem;
   font-weight: 600;
-  color: #1f2937;
-  margin-bottom: 1.5rem;
+  color: #f1f5f9;
+  margin: 0;
+}
+
+.help-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.05));
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 0.5rem;
+  color: #93c5fd;
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.help-link:hover {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1));
+  border-color: rgba(59, 130, 246, 0.5);
+  color: #dbeafe;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.2);
+}
+
+.help-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  background: #3b82f6;
+  color: white;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  font-weight: 700;
 }
 
 
@@ -603,6 +648,8 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  min-height: 120px;
+  justify-content: flex-start;
 }
 
 
@@ -1167,6 +1214,24 @@ onMounted(async () => {
   
   .btn {
     justify-content: center;
+  }
+  
+  .form-title-container {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .help-link {
+    align-self: flex-start;
+    font-size: 0.8rem;
+    padding: 0.375rem 0.5rem;
+  }
+  
+  .help-icon {
+    width: 1rem;
+    height: 1rem;
+    font-size: 0.7rem;
   }
 }
 </style> 

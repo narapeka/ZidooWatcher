@@ -31,12 +31,17 @@ export const useWatcherStore = defineStore('watcher', () => {
     },
     zidoo: {
       ip: '192.168.1.99',
-      port: 9529,
       api_path: '/ZidooVideoPlay/getPlayStatus'
     },
     notification: {
       endpoint: 'http://192.168.1.50:7507/play',
       timeout_seconds: 10
+    },
+    extension_monitoring: {
+      bdmv: true,
+      iso: true,
+      mkv: false,
+      mp4: false
     }
   })
   
@@ -259,6 +264,33 @@ export const useWatcherStore = defineStore('watcher', () => {
       loading.value = false
     }
   }
+
+  const updateExtensionMonitoring = async (extensionData) => {
+    try {
+      loading.value = true
+      await axios.put('/api/extension-monitoring', extensionData)
+      await fetchConfig()
+    } catch (err) {
+      error.value = err.message
+      console.error('Error updating extension monitoring:', err)
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const toggleExtensionMonitoring = async (extension, enable) => {
+    try {
+      loading.value = true
+      const extensionData = { [extension]: enable }
+      await axios.put('/api/extension-monitoring', extensionData)
+      await fetchConfig()
+    } catch (err) {
+      error.value = err.message
+      console.error('Error toggling extension monitoring:', err)
+    } finally {
+      loading.value = false
+    }
+  }
   
   const fetchPathMappings = async () => {
     try {
@@ -383,6 +415,8 @@ export const useWatcherStore = defineStore('watcher', () => {
     stopService,
     fetchConfig,
     updateConfig,
+    updateExtensionMonitoring,
+    toggleExtensionMonitoring,
     fetchPathMappings,
     addPathMapping,
     removePathMapping,
