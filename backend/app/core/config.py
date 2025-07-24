@@ -39,6 +39,7 @@ class ExtensionMonitoringConfig(BaseModel):
     iso: bool = True
     mkv: bool = False
     mp4: bool = False
+    m2ts: bool = False
 
 class Settings(BaseModel):
     general: GeneralConfig = GeneralConfig()

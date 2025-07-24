@@ -300,11 +300,13 @@ class WatcherService:
             return ext_config.mkv
         elif path_lower.endswith('.mp4'):
             return ext_config.mp4
+        elif path_lower.endswith('.m2ts'):
+            return ext_config.m2ts
         
         # Check for other common video extensions
         video_extensions = [
             '.avi', '.mov', '.wmv', '.flv', '.webm', '.m4v', '.3gp', '.ogv',
-            '.ts', '.mts', '.m2ts', '.vob', '.asf', '.rm', '.rmvb', '.divx',
+            '.ts', '.mts', '.vob', '.asf', '.rm', '.rmvb', '.divx',
             '.xvid', '.h264', '.h265', '.hevc', '.vp8', '.vp9', '.av1'
         ]
         

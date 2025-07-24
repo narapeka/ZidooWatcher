@@ -41,7 +41,8 @@ export const useWatcherStore = defineStore('watcher', () => {
       bdmv: true,
       iso: true,
       mkv: false,
-      mp4: false
+      mp4: false,
+      m2ts: false
     }
   })
   

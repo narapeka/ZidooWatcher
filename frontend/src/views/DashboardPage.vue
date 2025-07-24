@@ -170,6 +170,24 @@
                 </label>
               </div>
             </div>
+            
+            <div class="extension-item">
+              <div class="extension-info">
+                <div class="extension-name">M2TS</div>
+                <div class="extension-desc">蓝光视频流</div>
+              </div>
+              <div class="extension-toggle">
+                <label class="switch">
+                  <input 
+                    type="checkbox" 
+                    :checked="config.extension_monitoring?.m2ts"
+                    @change="toggleExtension('m2ts', $event.target.checked)"
+                    :disabled="loading"
+                  >
+                  <span class="switch-slider"></span>
+                </label>
+              </div>
+            </div>
           </div>
         </div>
       </div>

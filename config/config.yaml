@@ -1,6 +1,7 @@
 extension_monitoring:
   bdmv: true
   iso: true
+  m2ts: false
   mkv: false
   mp4: false
 general:
