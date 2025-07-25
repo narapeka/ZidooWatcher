@@ -8,8 +8,7 @@ from app.core.logger import logger
 
 class ZidooClient:
     def __init__(self):
-        self.base_url = f"http://{settings.zidoo.ip}:{settings.zidoo.port}"
-        self.api_path = settings.zidoo.api_path
+        # 移除初始化时的配置读取，改为每次请求时从内存获取最新配置
         self.timeout = httpx.Timeout(10.0)
         self.is_device_online = True  # Track device connectivity
         self.consecutive_errors = 0   # Track consecutive connection errors
@@ -22,6 +21,10 @@ class ZidooClient:
         Returns: (status_object, connection_state)
         connection_state: "online", "offline", "error"
         """
+        # 每次请求时从内存获取最新配置
+        base_url = f"http://{settings.zidoo.ip}:{settings.zidoo.port}"
+        api_path = settings.zidoo.api_path
+        
         # 频率限制：确保请求间隔不小于最小间隔
         current_time = time.time()
         time_since_last_request = current_time - self.last_request_time
@@ -31,7 +34,7 @@ class ZidooClient:
             await asyncio.sleep(sleep_time)
         
         self.last_request_time = time.time()
-        url = f"{self.base_url}{self.api_path}"
+        url = f"{base_url}{api_path}"
         
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
@@ -107,7 +110,9 @@ class ZidooClient:
     
     async def stop_playback(self) -> bool:
         """Stop the current playback"""
-        url = f"{self.base_url}/ZidooVideoPlay/changeStatus?status=-1"
+        # 从内存获取最新配置
+        base_url = f"http://{settings.zidoo.ip}:{settings.zidoo.port}"
+        url = f"{base_url}/ZidooVideoPlay/changeStatus?status=-1"
         
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
@@ -124,8 +129,10 @@ class ZidooClient:
     
     def get_connectivity_status(self) -> dict:
         """Get current connectivity status"""
+        # 从内存获取最新配置
+        base_url = f"http://{settings.zidoo.ip}:{settings.zidoo.port}"
         return {
             "is_online": self.is_device_online,
             "consecutive_errors": self.consecutive_errors,
-            "base_url": self.base_url
+            "base_url": base_url
         } 

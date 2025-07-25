@@ -6,23 +6,27 @@ from app.core.logger import logger
 
 class NotificationService:
     def __init__(self):
-        self.endpoint = settings.notification.endpoint
-        self.timeout = settings.notification.timeout_seconds
+        # 移除初始化时的配置读取，改为每次发送时从内存获取最新配置
+        pass
         
     async def send_notification(self, file_path: str) -> bool:
         """Send notification to external endpoint"""
+        # 每次发送时从内存获取最新配置
+        endpoint = settings.notification.endpoint
+        timeout = settings.notification.timeout_seconds
+        
         payload = NotificationPayload(file_path=file_path)
         
         try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
+            async with httpx.AsyncClient(timeout=timeout) as client:
                 response = await client.post(
-                    self.endpoint,
+                    endpoint,
                     json=payload.dict(),
                     headers={"Content-Type": "application/json"}
                 )
                 response.raise_for_status()
                 
-                logger.info(f"Notification sent successfully to {self.endpoint}: {file_path}")
+                logger.info(f"Notification sent successfully to {endpoint}: {file_path}")
                 return True
                 
         except httpx.RequestError as e:
