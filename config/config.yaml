@@ -9,11 +9,11 @@ general:
   log_level: INFO
 mapping_paths:
 - enable: true
-  source: /mnt/nfs/192.168.1.50#test/
-  target: /192.168.1.50/volume1/test
+  source: /mnt/nfs/192.168.1.50#Media/
+  target: /path1
 - enable: true
   source: /storage/emulated/0/CloudDrive/115/
-  target: /cloud/115/
+  target: /path2
 notification:
   endpoint: http://192.168.1.50:7507/play
   timeout_seconds: 10
