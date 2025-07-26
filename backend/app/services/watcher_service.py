@@ -242,32 +242,34 @@ class WatcherService:
             # Log combined action
             log_buffer.add_log("正在发送通知并停止本机播放...", "INFO")
             
-            # Create task for notification (don't await it)
-            notification_task = asyncio.create_task(
-                self._send_notification_async(mapped_path)
-            )
+            # Send notification synchronously and get status code
+            status_code = await self._send_notification_async(mapped_path)
             
-            # Immediately create task to stop playback (don't await it)
-            stop_task = asyncio.create_task(
-                self._stop_playback_async()
-            )
+            # Only stop playback if status code is NOT 503
+            if status_code != 503:
+                await self._stop_playback_async()
+            else:
+                log_buffer.add_log(f"远程设备离线，继续本机播放...", "INFO")
             
         else:
             # No mapping found or mapping disabled - clear handled video
             self.last_handled_video = None
             log_buffer.add_log(mapping_status, "WARNING")
     
-    async def _send_notification_async(self, mapped_path: str):
-        """Send notification asynchronously"""
+    async def _send_notification_async(self, mapped_path: str) -> int:
+        """Send notification asynchronously
+        
+        Returns:
+            int: HTTP status code from the notification endpoint
+        """
         try:
-            success = await self.notification_service.send_notification(mapped_path)
-            if success:
-                log_buffer.add_log(f"通知已发送: {mapped_path}", "INFO")
-            else:
-                log_buffer.add_log(f"发送通知失败: {mapped_path}", "ERROR")
+            status_code = await self.notification_service.send_notification(mapped_path)
+            log_buffer.add_log(f"通知已发送，状态码: {status_code}", "INFO")
+            return status_code
         except Exception as e:
             logger.error(f"发送通知时出错: {e}")
             log_buffer.add_log(f"发送通知时出错: {e}", "ERROR")
+            return 0  # Return 0 for unexpected errors
     
     async def _stop_playback_async(self):
         """Stop playback asynchronously"""
