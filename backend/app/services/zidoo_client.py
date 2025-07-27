@@ -112,7 +112,7 @@ class ZidooClient:
         """Stop the current playback"""
         # 从内存获取最新配置
         base_url = f"http://{settings.zidoo.ip}:{settings.zidoo.port}"
-        url = f"{base_url}/ZidooVideoPlay/changeStatus?status=-1"
+        url = f"{base_url}/ZidooControlCenter/RemoteControl/sendkey?key=Key.MediaStop"
         
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
