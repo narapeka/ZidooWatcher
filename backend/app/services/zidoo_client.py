@@ -112,15 +112,28 @@ class ZidooClient:
         """Stop the current playback"""
         # 从内存获取最新配置
         base_url = f"http://{settings.zidoo.ip}:{settings.zidoo.port}"
-        url = f"{base_url}/ZidooControlCenter/RemoteControl/sendkey?key=Key.MediaStop"
         
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.get(url)
+                # First send Key.Back
+                back_url = f"{base_url}/ZidooControlCenter/RemoteControl/sendkey?key=Key.Back"
+                logger.debug("发送 Key.Back 命令...")
+                response = await client.get(back_url)
+                response.raise_for_status()
+                back_data = response.json()
+                logger.debug(f"Key.Back 响应: {back_data}")
+                
+                # Wait 100ms
+                await asyncio.sleep(0.1)
+                
+                # Then send Key.MediaStop
+                stop_url = f"{base_url}/ZidooControlCenter/RemoteControl/sendkey?key=Key.MediaStop"
+                logger.debug("发送 Key.MediaStop 命令...")
+                response = await client.get(stop_url)
                 response.raise_for_status()
                 
                 data = response.json()
-                logger.info(f"停止播放响应: {data}")
+                logger.debug(f"停止播放响应: {data}")
                 return True
                 
         except Exception as e:

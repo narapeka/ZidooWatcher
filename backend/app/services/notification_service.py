@@ -22,6 +22,9 @@ class NotificationService:
         payload = NotificationPayload(file_path=file_path)
         
         try:
+            # Add debug logging to show the exact payload being sent
+            logger.debug(f"Sending notification payload: {payload.dict()}")
+            
             async with httpx.AsyncClient(timeout=timeout) as client:
                 response = await client.post(
                     endpoint,
