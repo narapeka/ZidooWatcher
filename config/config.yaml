@@ -5,6 +5,7 @@ extension_monitoring:
   mkv: false
   mp4: false
 general:
+  auto_start: false
   heart_rate: 500
   log_level: INFO
 mapping_paths:

@@ -223,6 +223,22 @@
               </select>
               <small class="form-help">控制日志输出的详细程度</small>
             </div>
+            
+            <!-- 第四行 -->
+            <div class="form-group">
+              <label class="form-label">自动启动监控</label>
+              <div class="setting-toggle">
+                <label class="switch">
+                  <input 
+                    type="checkbox" 
+                    id="autoStart"
+                    v-model="autoStart"
+                  >
+                  <span class="switch-slider"></span>
+                </label>
+              </div>
+              <small class="form-help">启用后，应用启动时会自动启动监控服务，无需手动启动</small>
+            </div>
           </div>
         </div>
       </div>
@@ -289,6 +305,15 @@ const logLevel = computed({
     if (!store.config) store.config = {}
     if (!store.config.general) store.config.general = {}
     store.config.general.log_level = value
+  }
+})
+
+const autoStart = computed({
+  get: () => config.value?.general?.auto_start || false,
+  set: (value) => {
+    if (!store.config) store.config = {}
+    if (!store.config.general) store.config.general = {}
+    store.config.general.auto_start = value
   }
 })
 
@@ -1067,6 +1092,69 @@ onMounted(async () => {
     width: 100%;
     justify-content: flex-start;
   }
+}
+
+/* Switch 开关样式 */
+.setting-toggle {
+  display: flex;
+  align-items: center;
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 24px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.switch-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #e5e7eb;
+  transition: all 0.3s ease;
+  border-radius: 24px;
+  border: 1px solid #d1d5db;
+}
+
+.switch-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 2px;
+  bottom: 2px;
+  background: white;
+  transition: all 0.3s ease;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+input:checked + .switch-slider {
+  background: #3b82f6;
+  border-color: #1d4ed8;
+}
+
+input:checked + .switch-slider:before {
+  transform: translateX(24px);
+}
+
+input:disabled + .switch-slider {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.switch-slider:hover {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 @media (max-width: 768px) {

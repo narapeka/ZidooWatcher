@@ -60,8 +60,16 @@ async def lifespan(app: FastAPI):
     import app.api.routes as api_routes
     api_routes.watcher_service = watcher_service
     
-    # Don't auto-start the watcher service - let user control it manually
-    logger.info("监控服务已准备就绪但未启动。请使用前端界面启动/停止服务。")
+    # Auto-start the watcher service if configured
+    if settings.general.auto_start:
+        logger.info("已配置为自动启动监控服务，正在启动...")
+        try:
+            await watcher_service.start()
+            logger.info("监控服务已自动启动")
+        except Exception as e:
+            logger.error(f"自动启动监控服务失败: {e}")
+    else:
+        logger.info("监控服务已准备就绪，请使用前端界面启动/停止服务。")
     
     yield
     

@@ -7,6 +7,7 @@ from pathlib import Path
 class GeneralConfig(BaseModel):
     heart_rate: int = 500
     log_level: str = "INFO"
+    auto_start: bool = False
     
     def __init__(self, **data):
         super().__init__(**data)
