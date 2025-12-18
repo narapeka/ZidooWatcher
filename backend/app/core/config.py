@@ -30,6 +30,7 @@ class PathMapping(BaseModel):
     source: str
     target: str
     enable: bool = True  # 默认启用
+    strm: Optional[str] = None  # Optional STRM path mapping (maps Zidoo path to actual file system path for reading .strm files)
 
 class NotificationConfig(BaseModel):
     endpoint: str = "http://192.168.1.50:7507/play"
@@ -42,12 +43,16 @@ class ExtensionMonitoringConfig(BaseModel):
     mp4: bool = False
     m2ts: bool = False
 
+class CloudDriveConfig(BaseModel):
+    mount_path: str = ""
+
 class Settings(BaseModel):
     general: GeneralConfig = GeneralConfig()
     zidoo: ZidooConfig = ZidooConfig()
     mapping_paths: List[PathMapping] = []
     notification: NotificationConfig = NotificationConfig()
     extension_monitoring: ExtensionMonitoringConfig = ExtensionMonitoringConfig()
+    clouddrive: CloudDriveConfig = CloudDriveConfig()
 
     @classmethod
     def load_from_file(cls, config_path: str = None) -> "Settings":

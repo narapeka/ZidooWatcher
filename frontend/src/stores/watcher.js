@@ -303,13 +303,14 @@ export const useWatcherStore = defineStore('watcher', () => {
     }
   }
   
-    const addPathMapping = async (source, target, enable = true) => {
+    const addPathMapping = async (source, target, enable = true, strm = null) => {
     try {
       loading.value = true
       await axios.post('/api/mappings', { 
         source, 
         target, 
-        enable 
+        enable,
+        strm
       })
       await fetchPathMappings()
     } catch (err) {

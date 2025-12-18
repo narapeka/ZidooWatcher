@@ -85,7 +85,8 @@ async def get_config():
             "api_path": settings.zidoo.api_path
         },
         "notification": settings.notification.model_dump(),
-        "extension_monitoring": settings.extension_monitoring.model_dump()
+        "extension_monitoring": settings.extension_monitoring.model_dump(),
+        "clouddrive": settings.clouddrive.model_dump()
     }
     return config_response
 
@@ -119,6 +120,12 @@ async def update_config(config_data: Dict[str, Any]):
             for key, value in config_data["extension_monitoring"].items():
                 if hasattr(settings.extension_monitoring, key):
                     setattr(settings.extension_monitoring, key, value)
+        
+        # Update clouddrive settings
+        if "clouddrive" in config_data:
+            for key, value in config_data["clouddrive"].items():
+                if hasattr(settings.clouddrive, key):
+                    setattr(settings.clouddrive, key, value)
         
         # Save configuration
         settings.save_to_file()
@@ -167,7 +174,8 @@ async def add_path_mapping(mapping: Dict[str, Any]):
     try:
         path_mapper = PathMapper()
         enable = mapping.get("enable", True)
-        path_mapper.add_mapping(mapping["source"], mapping["target"], enable)
+        strm = mapping.get("strm", None)
+        path_mapper.add_mapping(mapping["source"], mapping["target"], enable, strm)
         settings.save_to_file()
         
         logger.info(f"路径映射已添加: {mapping['source']} -> {mapping['target']}")

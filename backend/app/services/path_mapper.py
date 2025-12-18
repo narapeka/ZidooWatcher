@@ -179,16 +179,17 @@ class PathMapper:
             
         return None, status_msg
 
-    def add_mapping(self, source: str, target: str, enable: bool = True):
+    def add_mapping(self, source: str, target: str, enable: bool = True, strm: Optional[str] = None):
         """Add a new path mapping"""
         from app.core.config import PathMapping
         
         # 保持用户输入的原始格式
-        new_mapping = PathMapping(source=source, target=target, enable=enable)
+        new_mapping = PathMapping(source=source, target=target, enable=enable, strm=strm)
         current_mappings = self._get_current_mappings()
         current_mappings.append(new_mapping)
         settings.mapping_paths = current_mappings
-        logger.info(f"已添加路径映射: {source} -> {target} (启用: {enable})")
+        strm_info = f", STRM路径: {strm}" if strm else ""
+        logger.info(f"已添加路径映射: {source} -> {target} (启用: {enable}{strm_info})")
     
     def remove_mapping(self, source: str, target: str):
         """Remove a path mapping"""
@@ -221,4 +222,41 @@ class PathMapper:
     def get_all_mappings(self):
         """Get all current path mappings"""
         current_mappings = self._get_current_mappings()
-        return [{"source": m.source, "target": m.target, "enable": m.enable} for m in current_mappings] 
+        return [{"source": m.source, "target": m.target, "enable": m.enable, "strm": m.strm} for m in current_mappings]
+    
+    def map_to_strm_path(self, zidoo_path: str) -> Optional[str]:
+        """
+        Map Zidoo-specific path to actual file system path for reading .strm files
+        
+        Args:
+            zidoo_path: Path from Zidoo API (Zidoo-specific)
+            
+        Returns:
+            Actual file system path if mapping found, None otherwise
+        """
+        if not zidoo_path:
+            return None
+        
+        logger.debug(f"Mapping Zidoo path to STRM file system path: {zidoo_path}")
+        
+        current_mappings = self._get_current_mappings()
+        
+        for mapping in current_mappings:
+            if not mapping.enable:
+                continue
+            
+            if not mapping.strm:
+                continue
+            
+            source = mapping.source
+            strm_path = mapping.strm
+            
+            # Use smart path replace to map source -> strm_path
+            mapped_path = self._smart_path_replace(zidoo_path, source, strm_path)
+            
+            if mapped_path is not None:
+                logger.info(f"STRM路径已映射: {zidoo_path} -> {mapped_path}")
+                return mapped_path
+        
+        logger.debug(f"未找到STRM路径映射: {zidoo_path}")
+        return None 

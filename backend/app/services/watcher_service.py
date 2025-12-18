@@ -6,6 +6,7 @@ from typing import Optional
 from app.services.zidoo_client import ZidooClient
 from app.services.path_mapper import PathMapper
 from app.services.notification_service import NotificationService
+from app.services.strm_processor import StrmProcessor
 from app.core.config import settings
 from app.core.logger import logger
 from app.core.log_buffer import log_buffer
@@ -40,6 +41,7 @@ class WatcherService:
         self.zidoo_client = ZidooClient()
         self.path_mapper = PathMapper()
         self.notification_service = NotificationService()
+        self.strm_processor = StrmProcessor(path_mapper=self.path_mapper)
         
         self.is_running = False
         self.is_paused = False
@@ -224,23 +226,45 @@ class WatcherService:
         # Log with both title and path for clarity
         title = status.video.title if status.video else "未知"
         logger.info(f"新视频开始播放: {title}")
-        log_buffer.add_log(f"新视频开始播放: {title} ({video_path})", "INFO")
+        log_buffer.add_log(f"新视频开始播放: {video_path}", "INFO")
         
-        # Check if the file extension is enabled for monitoring
-        if not self._is_extension_enabled(video_path):
-            logger.info(f"文件扩展名未启用监控: {video_path}")
-            log_buffer.add_log(f"文件扩展名未启用监控，跳过处理: {video_path}", "INFO")
+        # Check if this is a .strm file
+        real_media_path = video_path
+        if video_path.lower().endswith('.strm'):
+            logger.info(f"检测到STRM文件: {video_path}")
+
+            # Extract real media path from strm file
+            real_media_path = self.strm_processor.extract_real_path(video_path)
+            
+            if not real_media_path:
+                # Extraction failed or doesn't match Case 1 or Case 2
+                log_buffer.add_log("无法读取STRM文件，或STRM文件中未找到有效媒体路径，跳过通知并继续本地播放", "WARNING")
+                logger.warning(f"无法从STRM文件提取有效路径: {video_path}")
+                return  # Skip notification, continue local playback
+            else:
+                # Successfully extracted real path
+                log_buffer.add_log(f"成功从STRM文件提取真实媒体路径: {real_media_path}", "INFO")
+                logger.info(f"成功从STRM文件提取路径: {video_path} -> {real_media_path}")
+        
+        # Check if the file extension is enabled for monitoring (use real_media_path, not video_path)
+        if not self._is_extension_enabled(real_media_path):
+            logger.info(f"文件扩展名未启用监控: {real_media_path}")
+            log_buffer.add_log(f"文件扩展名未启用监控，跳过处理: {real_media_path}", "INFO")
             return
         
-        # Check path mapping with detailed status
-        mapped_path, mapping_status = self.path_mapper.check_path_mapping_status(video_path)
+        # Check path mapping with detailed status (use real_media_path, not video_path)
+        # Note: We do NOT check if the .strm file location matches mapping_paths
+        mapped_path, mapping_status = self.path_mapper.check_path_mapping_status(real_media_path)
         
         if mapped_path:
             # Successfully mapped - record that we're handling this video
             self.last_handled_video = video_path
             
+            # Log mapping result
+            log_buffer.add_log(f"路径映射结果: {real_media_path} -> {mapped_path}", "INFO")
+            
             # Log combined action
-            log_buffer.add_log("正在发送通知并停止本机播放...", "INFO")
+            log_buffer.add_log("正在通知BlurayPoster并停止本机播放...", "INFO")
             
             # Send notification synchronously and get status code
             status_code = await self._send_notification_async(mapped_path)

@@ -74,6 +74,16 @@
                 >
                 <small class="form-help">蓝光机可识别路径，或者BlurayPoster中的Media路径</small>
               </div>
+              <div class="form-group">
+                <label class="form-label">STRM路径</label>
+                <input 
+                  type="text" 
+                  v-model="newMapping.strm" 
+                  placeholder="例如: /actual/path/to/strm/files (可选)" 
+                  class="form-input"
+                >
+                <small class="form-help">用于读取STRM文件的实际文件系统路径（可选，用于STRM文件处理）</small>
+              </div>
             </div>
             <div class="form-actions">
               <button 
@@ -104,6 +114,7 @@
             <div class="table-header">
               <div class="table-col source-col">源路径</div>
               <div class="table-col target-col">目标路径</div>
+              <div class="table-col strm-col">STRM路径</div>
               <div class="table-col actions-col">操作</div>
             </div>
             
@@ -116,6 +127,10 @@
                 <div class="table-cell target-cell">
                   <div class="cell-label">目标路径</div>
                   <code>{{ mapping.target }}</code>
+                </div>
+                <div class="table-cell strm-cell">
+                  <div class="cell-label">STRM路径</div>
+                  <code>{{ mapping.strm || '-' }}</code>
                 </div>
                 <div class="table-cell actions-cell">
                   <div class="cell-label">操作</div>
@@ -239,6 +254,18 @@
               </div>
               <small class="form-help">启用后，应用启动时会自动启动监控服务，无需手动启动</small>
             </div>
+            
+            <!-- 第五行 -->
+            <div class="form-group">
+              <label class="form-label">CloudDrive挂载路径</label>
+              <input 
+                type="text" 
+                v-model="clouddriveMountPath" 
+                placeholder="/mnt/smb/192.168.1.50#cloud/CloudDrive/115"
+                class="form-input"
+              >
+              <small class="form-help">用于拼接STRM文件中的相对路径，获得实际播放地址</small>
+            </div>
           </div>
         </div>
       </div>
@@ -272,7 +299,8 @@ const activeTab = ref('mappings')
 const editingIndex = ref(-1)
 const newMapping = ref({
   source: '',
-  target: ''
+  target: '',
+  strm: ''
 })
 
 const saveResult = ref(null)
@@ -357,15 +385,25 @@ const notificationTimeout = computed({
   }
 })
 
+const clouddriveMountPath = computed({
+  get: () => config.value?.clouddrive?.mount_path || '',
+  set: (value) => {
+    if (!store.config) store.config = {}
+    if (!store.config.clouddrive) store.config.clouddrive = {}
+    store.config.clouddrive.mount_path = value
+  }
+})
+
 // Methods
 const addMapping = async () => {
   if (canAddMapping.value) {
     await store.addPathMapping(
       newMapping.value.source.trim(), 
       newMapping.value.target.trim(), 
-      true
+      true,
+      newMapping.value.strm?.trim() || null
     )
-    newMapping.value = { source: '', target: '' }
+    newMapping.value = { source: '', target: '', strm: '' }
   }
 }
 
@@ -373,7 +411,8 @@ const editMapping = (index) => {
   const mapping = pathMappings.value[index]
   newMapping.value = { 
     source: mapping.source, 
-    target: mapping.target 
+    target: mapping.target,
+    strm: mapping.strm || ''
   }
   editingIndex.value = index
 }
@@ -387,14 +426,15 @@ const updateMapping = async () => {
     await store.addPathMapping(
       newMapping.value.source.trim(), 
       newMapping.value.target.trim(), 
-      oldMapping.enable || true
+      oldMapping.enable || true,
+      newMapping.value.strm?.trim() || null
     )
     cancelEdit()
   }
 }
 
 const cancelEdit = () => {
-  newMapping.value = { source: '', target: '' }
+  newMapping.value = { source: '', target: '', strm: '' }
   editingIndex.value = -1
 }
 
@@ -578,7 +618,7 @@ onMounted(async () => {
 .settings-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  grid-template-rows: repeat(3, auto);
+  grid-template-rows: repeat(4, auto);
   gap: 2rem;
   width: 100%;
 }
@@ -587,7 +627,7 @@ onMounted(async () => {
 @media (max-width: 768px) {
   .settings-grid {
     grid-template-columns: 1fr;
-    grid-template-rows: repeat(5, auto);
+    grid-template-rows: repeat(6, auto);
   }
 }
 
@@ -651,7 +691,7 @@ onMounted(async () => {
 
 .form-inputs {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 1.5rem;
 }
 
@@ -766,7 +806,7 @@ onMounted(async () => {
 
 .table-header {
   display: grid;
-  grid-template-columns: 1fr 1fr auto;
+  grid-template-columns: 1fr 1fr 1fr auto;
   background: rgba(15, 23, 42, 0.8);
   border-bottom: 1px solid rgba(148, 163, 184, 0.2);
 }
@@ -787,6 +827,10 @@ onMounted(async () => {
   border-right: 1px solid rgba(148, 163, 184, 0.2);
 }
 
+.strm-col {
+  border-right: 1px solid rgba(148, 163, 184, 0.2);
+}
+
 .actions-col {
   text-align: center;
 }
@@ -797,7 +841,7 @@ onMounted(async () => {
 
 .table-row {
   display: grid;
-  grid-template-columns: 1fr 1fr auto;
+  grid-template-columns: 1fr 1fr 1fr auto;
   border-bottom: 1px solid #f3f4f6;
   transition: all 0.2s ease;
 }
@@ -836,6 +880,10 @@ onMounted(async () => {
 }
 
 .target-cell {
+  border-right: 1px solid #f3f4f6;
+}
+
+.strm-cell {
   border-right: 1px solid #f3f4f6;
 }
 
