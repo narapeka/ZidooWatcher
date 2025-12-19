@@ -115,14 +115,14 @@
                   class="menu-item"
                   @click="startAddMapping('media')"
                 >
-                  <span class="menu-item-icon">📁</span>
+                  <span class="menu-item-icon">🎞️</span>
                   添加媒体路径映射
                 </button>
                 <button 
                   class="menu-item"
                   @click="startAddMapping('strm')"
                 >
-                  <span class="menu-item-icon">📄</span>
+                  <span class="menu-item-icon">🔗</span>
                   添加STRM文件映射
                 </button>
               </div>

@@ -226,7 +226,7 @@ class WatcherService:
         # Log with both title and path for clarity
         title = status.video.title if status.video else "未知"
         logger.info(f"新视频开始播放: {title}")
-        log_buffer.add_log(f"新视频开始播放: {video_path}", "INFO")
+        log_buffer.add_log(f"检测到新视频开始播放: {video_path}", "INFO")
         
         # Check if this is a .strm file
         real_media_path = video_path
