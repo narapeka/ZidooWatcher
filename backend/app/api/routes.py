@@ -173,27 +173,73 @@ async def add_path_mapping(mapping: Dict[str, Any]):
     """Add a new path mapping"""
     try:
         path_mapper = PathMapper()
+        mapping_type = mapping.get("mapping_type", "media")
+        target = mapping.get("target")
         enable = mapping.get("enable", True)
-        strm = mapping.get("strm", None)
-        path_mapper.add_mapping(mapping["source"], mapping["target"], enable, strm)
+        
+        if not target:
+            raise HTTPException(status_code=400, detail="Target path is required")
+        
+        if mapping_type not in ["media", "strm"]:
+            raise HTTPException(status_code=400, detail=f"Invalid mapping_type: {mapping_type}. Must be 'media' or 'strm'")
+        
+        path_mapper.add_mapping(mapping["source"], mapping_type=mapping_type, target=target, enable=enable)
         settings.save_to_file()
         
-        logger.info(f"路径映射已添加: {mapping['source']} -> {mapping['target']}")
+        logger.info(f"路径映射已添加: {mapping['source']} (类型: {mapping_type})")
         return {"success": True, "message": "路径映射已添加"}
         
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"添加路径映射时出错: {e}")
         raise HTTPException(status_code=500, detail=f"添加路径映射时出错: {e}")
 
+@api_router.put("/mappings", response_model=Dict[str, Any])
+async def update_path_mapping(mapping: Dict[str, Any]):
+    """Update a path mapping in place (preserves order)"""
+    try:
+        path_mapper = PathMapper()
+        old_source = mapping.get("old_source")
+        old_mapping_type = mapping.get("old_mapping_type")
+        old_target = mapping.get("old_target")
+        new_source = mapping.get("new_source")
+        new_target = mapping.get("new_target")
+        
+        if not old_source:
+            raise HTTPException(status_code=400, detail="old_source is required")
+        
+        path_mapper.update_mapping(
+            old_source=old_source,
+            old_mapping_type=old_mapping_type,
+            old_target=old_target,
+            new_source=new_source,
+            new_target=new_target
+        )
+        settings.save_to_file()
+        
+        logger.info(f"路径映射已更新: {old_source}")
+        return {"success": True, "message": "路径映射已更新"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"更新路径映射时出错: {e}")
+        raise HTTPException(status_code=500, detail=f"更新路径映射时出错: {e}")
+
 @api_router.delete("/mappings", response_model=Dict[str, Any])
-async def remove_path_mapping(mapping: Dict[str, str]):
+async def remove_path_mapping(mapping: Dict[str, Any]):
     """Remove a path mapping"""
     try:
         path_mapper = PathMapper()
-        path_mapper.remove_mapping(mapping["source"], mapping["target"])
+        source = mapping.get("source")
+        mapping_type = mapping.get("mapping_type")
+        target = mapping.get("target")
+        
+        path_mapper.remove_mapping(source, mapping_type=mapping_type, target=target)
         settings.save_to_file()
         
-        logger.info(f"路径映射已删除: {mapping['source']} -> {mapping['target']}")
+        logger.info(f"路径映射已删除: {source}")
         return {"success": True, "message": "路径映射已删除"}
         
     except Exception as e:
@@ -205,11 +251,16 @@ async def toggle_path_mapping(mapping: Dict[str, Any]):
     """Toggle path mapping enable/disable status"""
     try:
         path_mapper = PathMapper()
-        path_mapper.toggle_mapping(mapping["source"], mapping["target"], mapping["enable"])
+        source = mapping.get("source")
+        mapping_type = mapping.get("mapping_type")
+        target = mapping.get("target")
+        enable = mapping.get("enable", True)
+        
+        path_mapper.toggle_mapping(source, mapping_type=mapping_type, target=target, enable=enable)
         settings.save_to_file()
         
-        status = "启用" if mapping["enable"] else "禁用"
-        logger.info(f"路径映射状态已切换: {mapping['source']} -> {mapping['target']} ({status})")
+        status = "启用" if enable else "禁用"
+        logger.info(f"路径映射状态已切换: {source} ({status})")
         return {"success": True, "message": f"路径映射已{status}"}
         
     except Exception as e:

@@ -6,18 +6,6 @@
         <div class="header-text">
           <h1 class="page-title">配置</h1>
         </div>
-        <div class="header-actions">
-          <button 
-            class="btn btn-primary btn-lg"
-            @click="saveConfig" 
-            :disabled="loading"
-          >
-            保存所有设置
-          </button>
-          <div v-if="saveResult" class="save-result" :class="saveResult.type">
-            {{ saveResult.message }}
-          </div>
-        </div>
       </div>
     </div>
 
@@ -41,123 +29,197 @@
 
     <!-- Path Mappings Tab -->
     <div v-if="activeTab === 'mappings'" class="tab-content">
-      <div class="section-card">
+      <!-- Add Mapping Form -->
+      <div v-if="showMappingForm" class="section-card mapping-form-card">
+        <div class="form-header">
+          <div class="form-header-left">
+            <h3 class="section-title">添加新映射</h3>
+            <span class="mapping-type-badge" :class="newMapping.mappingType === 'media' ? 'badge-media' : 'badge-strm'">
+              {{ newMapping.mappingType === 'media' ? '媒体' : 'STRM' }}
+            </span>
+          </div>
+          <button class="btn-icon" @click="cancelEdit" title="关闭">
+            <span>×</span>
+          </button>
+        </div>
+        
+        <div class="form-container">
+          <div class="form-inputs">
+            <div class="form-group">
+              <label class="form-label">源路径</label>
+              <input 
+                type="text" 
+                v-model="newMapping.source" 
+                :placeholder="newMapping.mappingType === 'media' ? '例如: /mnt/smb/192.168.1.50#myShare/movie' : '例如: /mnt/smb/192.168.1.50#myShare/strm'" 
+                class="form-input"
+              >
+              <small class="form-help">芝杜播放器中的路径（详见帮助）</small>
+            </div>
+            <div class="form-group">
+              <label class="form-label">
+                <span v-if="newMapping.mappingType === 'media'">目标路径</span>
+                <span v-else>STRM路径</span>
+              </label>
+              <input 
+                type="text" 
+                v-model="newMapping.target" 
+                :placeholder="newMapping.mappingType === 'media' ? '例如：/myNAS/myShare/movie' : '例如: /myNAS/myShare/strm'" 
+                class="form-input"
+              >
+              <small class="form-help">
+                <span v-if="newMapping.mappingType === 'media'">蓝光机可识别路径，或者BlurayPoster中的Media路径</span>
+                <span v-else>用于读取STRM文件的实际文件系统路径</span>
+              </small>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button 
+              class="btn btn-primary"
+              @click="addMapping()" 
+              :disabled="loading || !canAddMapping"
+            >
+              保存
+            </button>
+            <button 
+              class="btn btn-outline"
+              @click="cancelEdit"
+            >
+              取消
+            </button>
+          </div>
+        </div>
+      </div>
 
-        <!-- Add New Mapping -->
-        <div class="mapping-form">
-          <div class="form-title-container">
-            <div class="form-title">{{ editingIndex !== -1 ? '编辑映射' : '添加新映射' }}</div>
+      <!-- Mappings List Section -->
+      <div class="section-card mappings-list-card">
+        <div class="mappings-header">
+          <div class="mappings-header-left">
+            <h3 class="section-title">路径映射</h3>
+          </div>
+          <div class="mappings-header-right">
             <router-link to="/help" class="help-link">
               <span class="help-icon">?</span>
               查看映射说明
             </router-link>
-          </div>
-          <div class="form-container">
-            <div class="form-inputs">
-              <div class="form-group">
-                <label class="form-label">源路径</label>
-                <input 
-                  type="text" 
-                  v-model="newMapping.source" 
-                  placeholder="例如: /mnt/nfs/192.168.1.50#myShare/movie" 
-                  class="form-input"
-                >
-                <small class="form-help">芝杜播放器中的路径（详见帮助）</small>
-              </div>
-              <div class="form-group">
-                <label class="form-label">目标路径</label>
-                <input 
-                  type="text" 
-                  v-model="newMapping.target" 
-                  placeholder="例如：myNAS/myShare/movie" 
-                  class="form-input"
-                >
-                <small class="form-help">蓝光机可识别路径，或者BlurayPoster中的Media路径</small>
-              </div>
-              <div class="form-group">
-                <label class="form-label">STRM路径</label>
-                <input 
-                  type="text" 
-                  v-model="newMapping.strm" 
-                  placeholder="例如: /actual/path/to/strm/files (可选)" 
-                  class="form-input"
-                >
-                <small class="form-help">用于读取STRM文件的实际文件系统路径（可选，用于STRM文件处理）</small>
-              </div>
-            </div>
-            <div class="form-actions">
+            <div v-if="editingIndex === -1" class="menu-button-wrapper">
               <button 
                 class="btn btn-primary"
-                @click="editingIndex !== -1 ? updateMapping() : addMapping()" 
-                :disabled="loading || !canAddMapping"
+                @click="showMappingMenu = !showMappingMenu"
+                :class="{ 'menu-open': showMappingMenu }"
               >
-                {{ editingIndex !== -1 ? '更新映射' : '添加映射' }}
+                添加映射
+                <span class="menu-arrow">▼</span>
               </button>
-              <button 
-                v-if="editingIndex !== -1"
-                class="btn btn-outline"
-                @click="cancelEdit"
-              >
-                取消
-              </button>
+              <div v-if="showMappingMenu" class="menu-dropdown" @click.stop>
+                <button 
+                  class="menu-item"
+                  @click="startAddMapping('media')"
+                >
+                  <span class="menu-item-icon">📁</span>
+                  添加媒体路径映射
+                </button>
+                <button 
+                  class="menu-item"
+                  @click="startAddMapping('strm')"
+                >
+                  <span class="menu-item-icon">📄</span>
+                  添加STRM文件映射
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- Mappings List -->
-        <div class="mappings-section">
-          <div class="mappings-header">
-            <h3>路径映射列表 ({{ pathMappings.length }})</h3>
+        <div class="mappings-table">
+          <div class="table-header">
+            <div class="table-col type-col">类型</div>
+            <div class="table-col source-col">源路径</div>
+            <div class="table-col target-col">目标路径</div>
+            <div class="table-col actions-col">操作</div>
           </div>
-
-          <div class="mappings-table">
-            <div class="table-header">
-              <div class="table-col source-col">源路径</div>
-              <div class="table-col target-col">目标路径</div>
-              <div class="table-col strm-col">STRM路径</div>
-              <div class="table-col actions-col">操作</div>
-            </div>
-            
-            <div class="table-body">
-              <div v-for="(mapping, index) in pathMappings" :key="index" class="table-row">
-                <div class="table-cell source-cell">
-                  <div class="cell-label">源路径</div>
-                  <code>{{ mapping.source }}</code>
+          
+          <div class="table-body">
+            <div 
+              v-for="(mapping, index) in pathMappings" 
+              :key="index" 
+              class="table-row"
+              :class="{ 'editing': editingIndex === index }"
+            >
+              <div class="table-cell type-cell">
+                <div class="cell-label">类型</div>
+                <span class="mapping-type-badge" :class="(mapping.mapping_type || 'media') === 'media' ? 'badge-media' : 'badge-strm'">
+                  {{ (mapping.mapping_type || 'media') === 'media' ? '媒体' : 'STRM' }}
+                </span>
+              </div>
+              <div class="table-cell source-cell">
+                <div class="cell-label">源路径</div>
+                <code v-if="editingIndex !== index">{{ mapping.source }}</code>
+                <input 
+                  v-else
+                  type="text" 
+                  v-model="editingMapping.source" 
+                  class="inline-input"
+                  @keyup.enter="saveInlineEdit(index)"
+                  @keyup.esc="cancelInlineEdit"
+                >
+              </div>
+              <div class="table-cell target-cell">
+                <div class="cell-label">
+                  <span v-if="(mapping.mapping_type || 'media') === 'media'">目标路径</span>
+                  <span v-else>STRM路径</span>
                 </div>
-                <div class="table-cell target-cell">
-                  <div class="cell-label">目标路径</div>
-                  <code>{{ mapping.target }}</code>
+                <code v-if="editingIndex !== index">{{ mapping.target || '-' }}</code>
+                <input 
+                  v-else
+                  type="text" 
+                  v-model="editingMapping.target" 
+                  class="inline-input"
+                  @keyup.enter="saveInlineEdit(index)"
+                  @keyup.esc="cancelInlineEdit"
+                >
+              </div>
+              <div class="table-cell actions-cell">
+                <div class="cell-label">操作</div>
+                <div class="action-buttons" v-if="editingIndex !== index">
+                  <button 
+                    class="btn btn-sm btn-outline"
+                    @click="startInlineEdit(index)"
+                    :disabled="loading"
+                  >
+                    编辑
+                  </button>
+                  <button 
+                    class="btn btn-danger btn-sm" 
+                    @click="removeMapping(mapping.source, mapping.mapping_type || 'media', mapping.target)" 
+                    :disabled="loading"
+                  >
+                    删除
+                  </button>
                 </div>
-                <div class="table-cell strm-cell">
-                  <div class="cell-label">STRM路径</div>
-                  <code>{{ mapping.strm || '-' }}</code>
-                </div>
-                <div class="table-cell actions-cell">
-                  <div class="cell-label">操作</div>
-                  <div class="action-buttons">
-                    <button 
-                      class="btn btn-sm btn-outline"
-                      @click="editMapping(index)"
-                      :disabled="loading"
-                    >
-                      编辑
-                    </button>
-                    <button 
-                      class="btn btn-danger btn-sm" 
-                      @click="removeMapping(mapping.source, mapping.target)" 
-                      :disabled="loading"
-                    >
-                      删除
-                    </button>
-                  </div>
+                <div class="action-buttons" v-else>
+                  <button 
+                    class="btn btn-sm btn-success"
+                    @click="saveInlineEdit(index)"
+                    :disabled="loading || !canSaveInlineEdit"
+                  >
+                    保存
+                  </button>
+                  <button 
+                    class="btn btn-sm btn-outline" 
+                    @click="cancelInlineEdit"
+                    :disabled="loading"
+                  >
+                    取消
+                  </button>
                 </div>
               </div>
             </div>
-            
-            <div v-if="pathMappings.length === 0" class="empty-table">
-              <div class="empty-text">暂无路径映射</div>
-              <div class="empty-subtitle">添加第一个路径映射以开始使用</div>
-            </div>
+          </div>
+          
+          <div v-if="pathMappings.length === 0" class="empty-table">
+            <div class="empty-icon">📋</div>
+            <div class="empty-text">暂无路径映射</div>
+            <div class="empty-subtitle">点击"添加映射"按钮创建第一个路径映射</div>
           </div>
         </div>
       </div>
@@ -267,6 +329,20 @@
               <small class="form-help">用于拼接STRM文件中的相对路径，获得实际播放地址</small>
             </div>
           </div>
+          
+          <!-- Save Button -->
+          <div class="settings-form-actions">
+            <button 
+              class="btn btn-primary btn-lg"
+              @click="saveConfig" 
+              :disabled="loading"
+            >
+              保存系统设置
+            </button>
+            <div v-if="saveResult" class="save-result" :class="saveResult.type">
+              {{ saveResult.message }}
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -289,7 +365,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useWatcherStore } from '../stores/watcher'
 
 const store = useWatcherStore()
@@ -297,10 +373,17 @@ const store = useWatcherStore()
 // Reactive data
 const activeTab = ref('mappings')
 const editingIndex = ref(-1)
+const showMappingMenu = ref(false)
+const showMappingForm = ref(false)
 const newMapping = ref({
+  mappingType: 'media',
+  source: '',
+  target: ''
+})
+const editingMapping = ref({
   source: '',
   target: '',
-  strm: ''
+  mapping_type: 'media'
 })
 
 const saveResult = ref(null)
@@ -315,6 +398,10 @@ const error = computed(() => store.error || null)
 
 const canAddMapping = computed(() => {
   return newMapping.value.source.trim() && newMapping.value.target.trim()
+})
+
+const canSaveInlineEdit = computed(() => {
+  return editingMapping.value.source.trim() && editingMapping.value.target.trim()
 })
 
 // Form data computed properties
@@ -395,51 +482,71 @@ const clouddriveMountPath = computed({
 })
 
 // Methods
+const startAddMapping = (mappingType) => {
+  newMapping.value = { mappingType, source: '', target: '' }
+  showMappingMenu.value = false
+  showMappingForm.value = true
+}
+
 const addMapping = async () => {
   if (canAddMapping.value) {
     await store.addPathMapping(
-      newMapping.value.source.trim(), 
-      newMapping.value.target.trim(), 
-      true,
-      newMapping.value.strm?.trim() || null
-    )
-    newMapping.value = { source: '', target: '', strm: '' }
-  }
-}
-
-const editMapping = (index) => {
-  const mapping = pathMappings.value[index]
-  newMapping.value = { 
-    source: mapping.source, 
-    target: mapping.target,
-    strm: mapping.strm || ''
-  }
-  editingIndex.value = index
-}
-
-const updateMapping = async () => {
-  if (canAddMapping.value && editingIndex.value !== -1) {
-    const oldMapping = pathMappings.value[editingIndex.value]
-    // Remove the old mapping
-    await store.removePathMapping(oldMapping.source, oldMapping.target)
-    // Add the updated mapping
-    await store.addPathMapping(
-      newMapping.value.source.trim(), 
-      newMapping.value.target.trim(), 
-      oldMapping.enable || true,
-      newMapping.value.strm?.trim() || null
+      newMapping.value.source.trim(),
+      newMapping.value.mappingType,
+      newMapping.value.target.trim(),
+      true
     )
     cancelEdit()
   }
 }
 
-const cancelEdit = () => {
-  newMapping.value = { source: '', target: '', strm: '' }
-  editingIndex.value = -1
+const startInlineEdit = (index) => {
+  const mapping = pathMappings.value[index]
+  editingMapping.value = {
+    source: mapping.source,
+    target: mapping.target || '',
+    mapping_type: mapping.mapping_type || 'media'
+  }
+  editingIndex.value = index
 }
 
-const removeMapping = (source, target) => {
-  store.removePathMapping(source, target)
+const saveInlineEdit = async (index) => {
+  if (!canSaveInlineEdit.value) return
+  
+  const oldMapping = pathMappings.value[index]
+  const mappingType = editingMapping.value.mapping_type
+  
+  // Update the mapping in place (preserves order)
+  await store.updatePathMapping(
+    oldMapping.source,
+    mappingType,
+    oldMapping.target,
+    editingMapping.value.source.trim(),
+    editingMapping.value.target.trim()
+  )
+  
+  cancelInlineEdit()
+}
+
+const cancelInlineEdit = () => {
+  editingIndex.value = -1
+  editingMapping.value = {
+    source: '',
+    target: '',
+    mapping_type: 'media'
+  }
+}
+
+const cancelEdit = () => {
+  newMapping.value = { mappingType: 'media', source: '', target: '' }
+  editingIndex.value = -1
+  showMappingForm.value = false
+  showMappingMenu.value = false
+  cancelInlineEdit()
+}
+
+const removeMapping = (source, mappingType, target) => {
+  store.removePathMapping(source, mappingType, target)
 }
 
 const saveConfig = async () => {
@@ -463,10 +570,22 @@ const clearError = () => {
   store.clearError()
 }
 
+// Close menu when clicking outside
+const handleClickOutside = (event) => {
+  if (showMappingMenu.value && !event.target.closest('.menu-button-wrapper')) {
+    showMappingMenu.value = false
+  }
+}
+
 // Lifecycle
 onMounted(async () => {
   await store.fetchConfig()
   await store.fetchPathMappings()
+  document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
 })
 </script>
 
@@ -502,13 +621,6 @@ onMounted(async () => {
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
-.header-actions {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 1rem;
-  flex-shrink: 0;
-}
 
 .save-result {
   display: flex;
@@ -598,16 +710,26 @@ onMounted(async () => {
 
 
 /* Forms */
-.settings-form,
-.mapping-form {
+.settings-form {
   padding: 2rem;
   max-width: none;
   width: 100%;
 }
 
-.section-card > .settings-form:first-child,
-.section-card > .mapping-form:first-child {
-  padding-top: 2rem;
+.mapping-form-card {
+  margin-bottom: 1.5rem;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .form-container {
@@ -621,6 +743,16 @@ onMounted(async () => {
   grid-template-rows: repeat(4, auto);
   gap: 2rem;
   width: 100%;
+  margin-bottom: 2rem;
+}
+
+.settings-form-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+  margin-top: 1rem;
 }
 
 /* 响应式布局 */
@@ -629,20 +761,56 @@ onMounted(async () => {
     grid-template-columns: 1fr;
     grid-template-rows: repeat(6, auto);
   }
+  
+  .settings-form-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .settings-form-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
-.form-title-container {
+.form-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
 }
 
-.form-title {
-  font-size: 1.25rem;
-  font-weight: 600;
+.form-header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.form-header .mapping-type-badge {
+  font-size: 0.875rem;
+  padding: 0.375rem 0.875rem;
+}
+
+.btn-icon {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 1.5rem;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-icon:hover {
+  background: rgba(148, 163, 184, 0.1);
   color: #f1f5f9;
-  margin: 0;
 }
 
 .help-link {
@@ -691,8 +859,93 @@ onMounted(async () => {
 
 .form-inputs {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr;
   gap: 1.5rem;
+}
+
+.mapping-form-card .form-container {
+  padding: 0;
+}
+
+.mapping-form-card {
+  padding: 2rem;
+}
+
+/* Menu Button Styles */
+.menu-button-wrapper {
+  position: relative;
+}
+
+.menu-arrow {
+  margin-left: 0.5rem;
+  font-size: 0.75rem;
+  transition: transform 0.3s ease;
+}
+
+.btn.menu-open .menu-arrow {
+  transform: rotate(180deg);
+}
+
+.menu-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 0.5rem;
+  background: rgba(30, 41, 59, 0.95);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 0.5rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  min-width: 200px;
+  z-index: 100;
+  overflow: hidden;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: none;
+  border: none;
+  color: #e2e8f0;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.875rem;
+}
+
+.menu-item:hover {
+  background: rgba(59, 130, 246, 0.2);
+  color: #f1f5f9;
+}
+
+.menu-item-icon {
+  font-size: 1rem;
+  opacity: 0.8;
+}
+
+.menu-item:first-child {
+  border-top-left-radius: 0.5rem;
+  border-top-right-radius: 0.5rem;
+}
+
+.menu-item:last-child {
+  border-bottom-left-radius: 0.5rem;
+  border-bottom-right-radius: 0.5rem;
+}
+
+.mapping-type-display {
+  padding: 0.5rem 0;
+}
+
+.mapping-type-display .mapping-type-badge {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
 }
 
 .form-actions {
@@ -778,7 +1031,7 @@ onMounted(async () => {
 
 
 /* Mappings */
-.mappings-section {
+.mappings-list-card {
   padding: 2rem;
 }
 
@@ -787,13 +1040,35 @@ onMounted(async () => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
 }
 
-.mappings-header h3 {
+.mappings-header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.section-title {
   margin: 0;
   color: #f1f5f9;
-  font-size: 1.25rem;
-  font-weight: 600;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.mappings-count {
+  color: #94a3b8;
+  font-size: 0.875rem;
+  padding: 0.25rem 0.75rem;
+  background: rgba(148, 163, 184, 0.1);
+  border-radius: 0.375rem;
+}
+
+.mappings-header-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 }
 
 /* Mappings Table */
@@ -801,22 +1076,31 @@ onMounted(async () => {
   border: 1px solid rgba(148, 163, 184, 0.2);
   border-radius: 0.75rem;
   overflow: hidden;
-  background: rgba(15, 23, 42, 0.6);
+  background: rgba(15, 23, 42, 0.4);
 }
 
 .table-header {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr auto;
+  grid-template-columns: 100px 1fr 1fr 150px;
   background: rgba(15, 23, 42, 0.8);
-  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+  border-bottom: 2px solid rgba(148, 163, 184, 0.3);
 }
 
 .table-col {
   padding: 1rem 1.5rem;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   font-weight: 600;
-  color: #e2e8f0;
+  color: #cbd5e1;
   text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+}
+
+.type-col {
+  border-right: 1px solid rgba(148, 163, 184, 0.2);
+  min-width: 80px;
 }
 
 .source-col {
@@ -827,27 +1111,30 @@ onMounted(async () => {
   border-right: 1px solid rgba(148, 163, 184, 0.2);
 }
 
-.strm-col {
-  border-right: 1px solid rgba(148, 163, 184, 0.2);
-}
 
 .actions-col {
   text-align: center;
 }
 
-.table-body {
-  /* Empty styles for now */
-}
 
 .table-row {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr auto;
-  border-bottom: 1px solid #f3f4f6;
+  grid-template-columns: 100px 1fr 1fr 150px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.15);
   transition: all 0.2s ease;
+  background: rgba(15, 23, 42, 0.3);
 }
 
-.table-row:hover {
-  background: rgba(139, 92, 246, 0.02);
+.table-row:hover:not(.editing) {
+  background: rgba(59, 130, 246, 0.08);
+  transform: translateX(2px);
+}
+
+.table-row.editing {
+  background: rgba(59, 130, 246, 0.15);
+  border: 2px solid rgba(59, 130, 246, 0.4);
+  border-radius: 0.5rem;
+  margin: 0.25rem 0;
 }
 
 .table-row:last-child {
@@ -855,9 +1142,14 @@ onMounted(async () => {
 }
 
 .table-cell {
-  padding: 1rem 1.5rem;
+  padding: 1.25rem 1.5rem;
   display: flex;
   align-items: center;
+  min-width: 0;
+}
+
+.table-cell > * {
+  width: 100%;
 }
 
 .cell-label {
@@ -875,17 +1167,48 @@ onMounted(async () => {
   gap: 0.5rem;
 }
 
+.type-col {
+  border-right: 1px solid rgba(148, 163, 184, 0.2);
+  min-width: 100px;
+  max-width: 120px;
+}
+
+.type-cell {
+  border-right: 1px solid rgba(148, 163, 184, 0.15);
+  min-width: 100px;
+  max-width: 120px;
+  justify-content: flex-start;
+}
+
+.source-col {
+  border-right: 1px solid rgba(148, 163, 184, 0.2);
+}
+
 .source-cell {
-  border-right: 1px solid #f3f4f6;
+  border-right: 1px solid rgba(148, 163, 184, 0.15);
+  justify-content: flex-start;
+}
+
+.target-col {
+  border-right: 1px solid rgba(148, 163, 184, 0.2);
 }
 
 .target-cell {
-  border-right: 1px solid #f3f4f6;
+  border-right: 1px solid rgba(148, 163, 184, 0.15);
+  justify-content: flex-start;
 }
 
-.strm-cell {
-  border-right: 1px solid #f3f4f6;
+.actions-col {
+  min-width: 150px;
+  max-width: 180px;
 }
+
+.actions-cell {
+  justify-content: center;
+  min-width: 150px;
+  max-width: 180px;
+}
+
 
 .actions-cell {
   justify-content: center;
@@ -895,12 +1218,80 @@ onMounted(async () => {
   font-family: 'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', 'Consolas', 
     'Menlo', 'DejaVu Sans Mono', 'Liberation Mono', monospace;
   font-size: 0.875rem;
-  background: rgba(59, 130, 246, 0.1);
-  color: #f1f5f9;
-  padding: 0.375rem 0.75rem;
-  border-radius: 0.375rem;
-  border: 1px solid rgba(59, 130, 246, 0.2);
+  background: rgba(59, 130, 246, 0.12);
+  color: #e2e8f0;
+  padding: 0.5rem 0.875rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(59, 130, 246, 0.25);
   word-break: break-all;
+  display: block;
+  width: 100%;
+  line-height: 1.5;
+  box-sizing: border-box;
+}
+
+.table-cell code.text-muted {
+  background: rgba(148, 163, 184, 0.1);
+  color: #94a3b8;
+  border-color: rgba(148, 163, 184, 0.2);
+}
+
+.inline-input {
+  width: 100%;
+  padding: 0.5rem 0.875rem;
+  border: 2px solid rgba(59, 130, 246, 0.5);
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  background: rgba(15, 23, 42, 0.8);
+  color: #f1f5f9;
+  font-family: 'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', 'Consolas', 
+    'Menlo', 'DejaVu Sans Mono', 'Liberation Mono', monospace;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.inline-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  background: rgba(15, 23, 42, 0.95);
+}
+
+.btn-success {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.btn-success:hover:not(:disabled) {
+  background: linear-gradient(135deg, #059669, #047857);
+}
+
+.mapping-type-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.375rem 0.875rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.badge-media {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(16, 185, 129, 0.15));
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.1);
+}
+
+.badge-strm {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(139, 92, 246, 0.15));
+  color: #8b5cf6;
+  border: 1px solid rgba(139, 92, 246, 0.4);
+  box-shadow: 0 2px 4px rgba(139, 92, 246, 0.1);
 }
 
 /* Empty States */
@@ -910,14 +1301,15 @@ onMounted(async () => {
   align-items: center;
   justify-content: center;
   padding: 4rem 2rem;
-  color: #6b7280;
   text-align: center;
-  background: rgba(15, 23, 42, 0.4);
-  border-radius: 0.75rem;
-  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(15, 23, 42, 0.2);
 }
 
-
+.empty-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
 
 .empty-text {
   font-size: 1.25rem;
@@ -927,7 +1319,7 @@ onMounted(async () => {
 }
 
 .empty-subtitle {
-  font-size: 1rem;
+  font-size: 0.875rem;
   color: #94a3b8;
 }
 
@@ -1102,6 +1494,15 @@ onMounted(async () => {
     gap: 1rem;
   }
   
+  .table-header {
+    display: none;
+  }
+  
+  .table-header {
+    grid-template-columns: 1fr;
+    display: none;
+  }
+  
   .table-row {
     display: flex;
     flex-direction: column;
@@ -1133,7 +1534,6 @@ onMounted(async () => {
   
   .actions-cell {
     justify-content: flex-start;
-    background: rgba(15, 23, 42, 0.3);
   }
   
   .action-buttons {
@@ -1220,14 +1620,6 @@ input:disabled + .switch-slider {
     gap: 1.5rem;
   }
   
-  .header-actions {
-    align-items: stretch;
-  }
-  
-  .header-actions .btn {
-    justify-content: center;
-  }
-  
   .table-cell code {
     font-size: 0.75rem;
     padding: 0.25rem 0.5rem;
@@ -1250,12 +1642,14 @@ input:disabled + .switch-slider {
   }
   
   .action-buttons {
-    flex-direction: column;
-    gap: 0.25rem;
+    flex-direction: row;
+    gap: 0.5rem;
+    flex-wrap: wrap;
   }
   
   .action-buttons .btn {
-    width: 100%;
+    flex: 1;
+    min-width: 0;
     justify-content: center;
   }
   
@@ -1271,6 +1665,21 @@ input:disabled + .switch-slider {
   .form-inputs {
     grid-template-columns: 1fr;
     gap: 1rem;
+  }
+  
+  .mappings-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .mappings-header-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .section-title {
+    font-size: 1.25rem;
   }
   
   .settings-grid {
@@ -1318,14 +1727,6 @@ input:disabled + .switch-slider {
     gap: 1.5rem;
   }
   
-  .header-actions {
-    align-items: stretch;
-  }
-  
-  .header-actions .btn {
-    justify-content: center;
-  }
-  
   .section-header,
   .settings-form,
   .mapping-form,
@@ -1346,6 +1747,16 @@ input:disabled + .switch-slider {
   .actions-cell {
     flex-direction: column;
     align-items: stretch;
+  }
+  
+  .action-buttons {
+    flex-direction: row;
+    gap: 0.5rem;
+  }
+  
+  .action-buttons .btn {
+    flex: 1;
+    min-width: 0;
   }
   
   .btn {

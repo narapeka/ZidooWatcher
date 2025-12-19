@@ -1,3 +1,5 @@
+clouddrive:
+  mount_path: /mnt/smb/192.168.1.100#myShare/CloudDrive/115
 extension_monitoring:
   bdmv: true
   iso: true
@@ -10,14 +12,16 @@ general:
   log_level: INFO
 mapping_paths:
 - enable: true
-  source: /mnt/nfs/192.168.1.50#Media/
-  target: /path1
+  mapping_type: media
+  source: /mnt/smb/192.168.1.100#myShare/CloudDrive/115
+  target: /bp_path
 - enable: true
-  source: /storage/emulated/0/CloudDrive/115/
-  target: /path2
+  mapping_type: strm
+  source: /mnt/smb/192.168.1.100#myShare/strm
+  target: /volume1/myShare/strm
 notification:
-  endpoint: http://192.168.1.50:7507/play
-  timeout_seconds: 10
+  endpoint: http://192.168.1.100:7507/play
+  timeout_seconds: 15
 zidoo:
   api_path: /ZidooVideoPlay/getPlayStatus
-  ip: 192.168.1.99
+  ip: 192.168.1.110

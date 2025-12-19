@@ -135,10 +135,19 @@ class PathMapper:
     def _get_current_mappings(self):
         """获取当前最新的路径映射配置 - 直接从内存读取，不重新加载文件"""
         return settings.mapping_paths
+    
+    def _sort_mappings(self, mappings):
+        """Sort mappings: media type first, then strm type"""
+        def sort_key(mapping):
+            # media = 0, strm = 1 (so media comes first)
+            return 0 if mapping.mapping_type == "media" else 1
+        
+        return sorted(mappings, key=sort_key)
 
     def check_path_mapping_status(self, original_path: str) -> Tuple[Optional[str], str]:
         """
         Check path mapping status and return detailed information
+        Only uses media type mappings (mapping_type == "media")
         Returns: (mapped_path, status_message)
         """
         if not original_path:
@@ -151,8 +160,15 @@ class PathMapper:
         disabled_matches = []
         
         for mapping in current_mappings:
+            # Only process media type mappings
+            if mapping.mapping_type != "media":
+                continue
+                
             source = mapping.source
             target = mapping.target
+            
+            if not target:
+                continue
             
             # 使用智能路径替换
             mapped_path = self._smart_path_replace(original_path, source, target)
@@ -179,54 +195,161 @@ class PathMapper:
             
         return None, status_msg
 
-    def add_mapping(self, source: str, target: str, enable: bool = True, strm: Optional[str] = None):
-        """Add a new path mapping"""
+    def add_mapping(self, source: str, mapping_type: str = "media", target: Optional[str] = None, 
+                    enable: bool = True):
+        """Add a new path mapping
+        
+        Args:
+            source: Source path (Zidoo path)
+            mapping_type: Type of mapping - "media" or "strm"
+            target: Target path - for media: BlurayPoster path; for STRM: actual file system path
+            enable: Whether the mapping is enabled
+        """
         from app.core.config import PathMapping
         
-        # 保持用户输入的原始格式
-        new_mapping = PathMapping(source=source, target=target, enable=enable, strm=strm)
+        if not target:
+            raise ValueError("Target path is required")
+        
+        new_mapping = PathMapping(source=source, mapping_type=mapping_type, target=target, enable=enable)
+        
+        if mapping_type == "media":
+            logger.info(f"已添加媒体路径映射: {source} -> {target} (启用: {enable})")
+        elif mapping_type == "strm":
+            logger.info(f"已添加STRM路径映射: {source} -> {target} (启用: {enable})")
+        else:
+            raise ValueError(f"Invalid mapping_type: {mapping_type}. Must be 'media' or 'strm'")
+        
         current_mappings = self._get_current_mappings()
         current_mappings.append(new_mapping)
-        settings.mapping_paths = current_mappings
-        strm_info = f", STRM路径: {strm}" if strm else ""
-        logger.info(f"已添加路径映射: {source} -> {target} (启用: {enable}{strm_info})")
+        # Sort mappings: media first, then strm
+        sorted_mappings = self._sort_mappings(current_mappings)
+        settings.mapping_paths = sorted_mappings
     
-    def remove_mapping(self, source: str, target: str):
-        """Remove a path mapping"""
+    def remove_mapping(self, source: str, mapping_type: Optional[str] = None, 
+                      target: Optional[str] = None):
+        """Remove a path mapping
+        
+        Args:
+            source: Source path
+            mapping_type: Type of mapping (optional, for more precise matching)
+            target: Target path (optional, for more precise matching)
+        """
         current_mappings = self._get_current_mappings()
         # 使用智能匹配，不依赖精确的路径格式
         for i, mapping in enumerate(current_mappings):
-            # 标准化比较
-            if (self._normalize_path(mapping.source) == self._normalize_path(source) and 
-                self._normalize_path(mapping.target) == self._normalize_path(target)):
+            # Match by source first
+            if self._normalize_path(mapping.source) != self._normalize_path(source):
+                continue
+            
+            # If mapping_type is provided, match it
+            if mapping_type and mapping.mapping_type != mapping_type:
+                continue
+            
+            # Match by target if provided
+            if target and self._normalize_path(mapping.target or "") == self._normalize_path(target):
                 del current_mappings[i]
                 settings.mapping_paths = current_mappings
                 logger.info(f"已删除路径映射: {source} -> {target}")
                 return
-        logger.warning(f"未找到路径映射: {source} -> {target}")
+        
+        logger.warning(f"未找到路径映射: {source}")
     
-    def toggle_mapping(self, source: str, target: str, enable: bool):
-        """Toggle mapping enable/disable status"""
+    def update_mapping(self, old_source: str, old_mapping_type: Optional[str] = None, 
+                      old_target: Optional[str] = None,
+                      new_source: Optional[str] = None, new_target: Optional[str] = None):
+        """Update a path mapping in place (preserves order)
+        
+        Args:
+            old_source: Original source path (for finding the mapping)
+            old_mapping_type: Original mapping type (optional, for more precise matching)
+            old_target: Original target path (optional, for more precise matching)
+            new_source: New source path (if None, keeps original)
+            new_target: New target path (if None, keeps original)
+        """
+        from app.core.config import PathMapping
+        
+        current_mappings = self._get_current_mappings()
+        # 使用智能匹配，不依赖精确的路径格式
+        for i, mapping in enumerate(current_mappings):
+            # Match by source first
+            if self._normalize_path(mapping.source) != self._normalize_path(old_source):
+                continue
+            
+            # If mapping_type is provided, match it
+            if old_mapping_type and mapping.mapping_type != old_mapping_type:
+                continue
+            
+            # Match by target if provided
+            if old_target and self._normalize_path(mapping.target or "") != self._normalize_path(old_target):
+                continue
+            
+            # Found the mapping - update it in place
+            updated_source = new_source if new_source is not None else mapping.source
+            updated_target = new_target if new_target is not None else mapping.target
+            
+            if not updated_target:
+                raise ValueError("Target path cannot be empty")
+            
+            # Update the mapping in place
+            mapping.source = updated_source
+            mapping.target = updated_target
+            # mapping_type and enable remain unchanged
+            
+            # Re-sort to maintain order (in case type changed, though it shouldn't)
+            sorted_mappings = self._sort_mappings(current_mappings)
+            settings.mapping_paths = sorted_mappings
+            logger.info(f"已更新路径映射: {old_source} -> {updated_source}")
+            return
+        
+        logger.warning(f"未找到路径映射: {old_source}")
+    
+    def toggle_mapping(self, source: str, mapping_type: Optional[str] = None,
+                      target: Optional[str] = None, enable: bool = True):
+        """Toggle mapping enable/disable status
+        
+        Args:
+            source: Source path
+            mapping_type: Type of mapping (optional, for more precise matching)
+            target: Target path (optional, for more precise matching)
+            enable: Enable/disable status
+        """
         current_mappings = self._get_current_mappings()
         # 使用智能匹配，不依赖精确的路径格式
         for mapping in current_mappings:
-            # 标准化比较
-            if (self._normalize_path(mapping.source) == self._normalize_path(source) and 
-                self._normalize_path(mapping.target) == self._normalize_path(target)):
+            # Match by source first
+            if self._normalize_path(mapping.source) != self._normalize_path(source):
+                continue
+            
+            # If mapping_type is provided, match it
+            if mapping_type and mapping.mapping_type != mapping_type:
+                continue
+            
+            # Match by target if provided
+            if target and self._normalize_path(mapping.target or "") == self._normalize_path(target):
                 mapping.enable = enable
                 settings.mapping_paths = current_mappings
                 logger.info(f"路径映射状态已切换: {source} -> {target} (启用: {enable})")
                 return
-        logger.warning(f"未找到路径映射: {source} -> {target}")
+        
+        logger.warning(f"未找到路径映射: {source}")
     
     def get_all_mappings(self):
-        """Get all current path mappings"""
+        """Get all current path mappings (sorted: media first, then strm)"""
         current_mappings = self._get_current_mappings()
-        return [{"source": m.source, "target": m.target, "enable": m.enable, "strm": m.strm} for m in current_mappings]
+        # Ensure mappings are sorted
+        sorted_mappings = self._sort_mappings(current_mappings)
+        return [{
+            "source": m.source, 
+            "mapping_type": m.mapping_type,
+            "target": m.target, 
+            "enable": m.enable
+        } for m in sorted_mappings]
     
     def map_to_strm_path(self, zidoo_path: str) -> Optional[str]:
         """
         Map Zidoo-specific path to actual file system path for reading .strm files
+        Only uses STRM type mappings (mapping_type == "strm")
+        For STRM mappings, the target field contains the actual file system path
         
         Args:
             zidoo_path: Path from Zidoo API (Zidoo-specific)
@@ -242,14 +365,18 @@ class PathMapper:
         current_mappings = self._get_current_mappings()
         
         for mapping in current_mappings:
+            # Only process STRM type mappings
+            if mapping.mapping_type != "strm":
+                continue
+                
             if not mapping.enable:
                 continue
             
-            if not mapping.strm:
+            if not mapping.target:
                 continue
             
             source = mapping.source
-            strm_path = mapping.strm
+            strm_path = mapping.target  # For STRM mappings, target contains the STRM file system path
             
             # Use smart path replace to map source -> strm_path
             mapped_path = self._smart_path_replace(zidoo_path, source, strm_path)

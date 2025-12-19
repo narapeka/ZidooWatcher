@@ -303,15 +303,17 @@ export const useWatcherStore = defineStore('watcher', () => {
     }
   }
   
-    const addPathMapping = async (source, target, enable = true, strm = null) => {
+  const addPathMapping = async (source, mappingType = 'media', target = null, enable = true) => {
     try {
       loading.value = true
-      await axios.post('/api/mappings', { 
+      const payload = { 
         source, 
-        target, 
-        enable,
-        strm
-      })
+        mapping_type: mappingType,
+        target,
+        enable
+      }
+      
+      await axios.post('/api/mappings', payload)
       await fetchPathMappings()
     } catch (err) {
       error.value = err.message
@@ -321,14 +323,21 @@ export const useWatcherStore = defineStore('watcher', () => {
     }
   }
 
-  const removePathMapping = async (source, target) => {
+  const removePathMapping = async (source, mappingType, target = null) => {
     try {
       loading.value = true
+      const payload = { source }
+      
+      if (mappingType) {
+        payload.mapping_type = mappingType
+      }
+      
+      if (target) {
+        payload.target = target
+      }
+      
       await axios.delete('/api/mappings', { 
-        data: { 
-          source, 
-          target 
-        } 
+        data: payload
       })
       await fetchPathMappings()
     } catch (err) {
@@ -339,14 +348,50 @@ export const useWatcherStore = defineStore('watcher', () => {
     }
   }
 
-  const togglePathMapping = async (source, target, enable) => {
+  const updatePathMapping = async (oldSource, oldMappingType, oldTarget, newSource, newTarget) => {
     try {
       loading.value = true
-      await axios.put('/api/mappings/toggle', { 
+      const payload = {
+        old_source: oldSource,
+        new_source: newSource,
+        new_target: newTarget
+      }
+      
+      if (oldMappingType) {
+        payload.old_mapping_type = oldMappingType
+      }
+      
+      if (oldTarget) {
+        payload.old_target = oldTarget
+      }
+      
+      await axios.put('/api/mappings', payload)
+      await fetchPathMappings()
+    } catch (err) {
+      error.value = err.message
+      console.error('Error updating path mapping:', err)
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const togglePathMapping = async (source, mappingType, target = null, enable = true) => {
+    try {
+      loading.value = true
+      const payload = { 
         source, 
-        target, 
         enable 
-      })
+      }
+      
+      if (mappingType) {
+        payload.mapping_type = mappingType
+      }
+      
+      if (target) {
+        payload.target = target
+      }
+      
+      await axios.put('/api/mappings/toggle', payload)
       await fetchPathMappings()
     } catch (err) {
       error.value = err.message
@@ -421,6 +466,7 @@ export const useWatcherStore = defineStore('watcher', () => {
     toggleExtensionMonitoring,
     fetchPathMappings,
     addPathMapping,
+    updatePathMapping,
     removePathMapping,
     togglePathMapping,
     addLog,

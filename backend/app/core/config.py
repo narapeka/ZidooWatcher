@@ -1,7 +1,7 @@
 import yaml
 import os
-from typing import List, Optional
-from pydantic import BaseModel
+from typing import List, Optional, Literal
+from pydantic import BaseModel, model_validator
 from pathlib import Path
 
 class GeneralConfig(BaseModel):
@@ -28,9 +28,16 @@ class ZidooConfig(BaseModel):
 
 class PathMapping(BaseModel):
     source: str
-    target: str
+    mapping_type: Literal["media", "strm"] = "media"  # Type of mapping: "media" for real media files, "strm" for STRM files
+    target: str  # Target path - for media mappings: BlurayPoster path; for STRM mappings: actual file system path to read .strm files
     enable: bool = True  # 默认启用
-    strm: Optional[str] = None  # Optional STRM path mapping (maps Zidoo path to actual file system path for reading .strm files)
+    
+    @model_validator(mode='after')
+    def validate_mapping_fields(self):
+        """Validate that target is set"""
+        if self.target is None or self.target == '':
+            raise ValueError('Target path is required')
+        return self
 
 class NotificationConfig(BaseModel):
     endpoint: str = "http://192.168.1.50:7507/play"
@@ -86,6 +93,39 @@ class Settings(BaseModel):
         try:
             with open(config_path, 'r', encoding='utf-8') as f:
                 config_data = yaml.safe_load(f)
+            
+            # Migrate existing path mappings to include mapping_type and consolidate strm into target
+            if config_data and 'mapping_paths' in config_data:
+                for mapping in config_data['mapping_paths']:
+                    # If mapping_type is not set, determine it from existing fields
+                    if 'mapping_type' not in mapping:
+                        has_target = mapping.get('target') is not None and mapping.get('target') != ''
+                        has_strm = mapping.get('strm') is not None and mapping.get('strm') != ''
+                        
+                        if has_strm:
+                            # If strm is set, use it as target and set type to strm
+                            mapping['mapping_type'] = 'strm'
+                            mapping['target'] = mapping.get('strm')
+                        elif has_target:
+                            # Only target: media mapping
+                            mapping['mapping_type'] = 'media'
+                        else:
+                            # Neither set: default to media (will fail validation, but better than nothing)
+                            mapping['mapping_type'] = 'media'
+                    
+                    # Remove strm field if it exists (we now use target for both)
+                    if 'strm' in mapping:
+                        del mapping['strm']
+            
+            # Sort mappings: media type first, then strm type
+            if config_data and 'mapping_paths' in config_data and config_data['mapping_paths']:
+                def sort_key(mapping):
+                    # media = 0, strm = 1 (so media comes first)
+                    mapping_type = mapping.get('mapping_type', 'media')
+                    return 0 if mapping_type == 'media' else 1
+                
+                config_data['mapping_paths'] = sorted(config_data['mapping_paths'], key=sort_key)
+            
             return cls(**config_data)
         except Exception as e:
             print(f"Error loading config from {config_path}: {e}")

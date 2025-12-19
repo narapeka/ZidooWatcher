@@ -59,26 +59,29 @@
         </div>
         
         <div class="card-content">
-          <div class="mappings-list" v-if="pathMappings.length > 0">
+          <div class="mappings-list" v-if="sortedPathMappings.length > 0">
             <div class="mapping-list-container">
-                                      <div v-for="(mapping, index) in pathMappings" :key="index" class="mapping-item">
-                          <div class="mapping-info">
-                            <div class="mapping-source">{{ mapping.source }}</div>
-                            <div class="mapping-arrow">→</div>
-                            <div class="mapping-target">{{ mapping.target }}</div>
-                          </div>
-                          <div class="mapping-toggle">
-                            <label class="switch">
-                              <input 
-                                type="checkbox" 
-                                :checked="mapping.enable"
-                                @change="toggleMapping(mapping.source, mapping.target, $event.target.checked)"
-                                :disabled="loading"
-                              >
-                              <span class="switch-slider"></span>
-                            </label>
-                          </div>
-                        </div>
+              <div v-for="(mapping, index) in sortedPathMappings" :key="index" class="mapping-item">
+                <div class="mapping-info">
+                  <span class="mapping-type-badge" :class="(mapping.mapping_type || 'media') === 'media' ? 'badge-media' : 'badge-strm'">
+                    {{ (mapping.mapping_type || 'media') === 'media' ? '媒体' : 'STRM' }}
+                  </span>
+                  <div class="mapping-source">{{ mapping.source }}</div>
+                  <div class="mapping-arrow">→</div>
+                  <div class="mapping-target">{{ mapping.target }}</div>
+                </div>
+                <div class="mapping-toggle">
+                  <label class="switch">
+                    <input 
+                      type="checkbox" 
+                      :checked="mapping.enable"
+                      @change="toggleMapping(mapping.source, mapping.mapping_type || 'media', mapping.target, $event.target.checked)"
+                      :disabled="loading"
+                    >
+                    <span class="switch-slider"></span>
+                  </label>
+                </div>
+              </div>
             </div>
           </div>
           
@@ -223,6 +226,17 @@ const statusText = computed(() => {
 
 const currentStatus = computed(() => store.currentStatus || {})
 const pathMappings = computed(() => store.pathMappings || [])
+const sortedPathMappings = computed(() => {
+  const mappings = [...pathMappings.value]
+  return mappings.sort((a, b) => {
+    const aType = a.mapping_type || 'media'
+    const bType = b.mapping_type || 'media'
+    // Media type comes first
+    if (aType === 'media' && bType === 'strm') return -1
+    if (aType === 'strm' && bType === 'media') return 1
+    return 0
+  })
+})
 const config = computed(() => store.config || {})
 const loading = computed(() => store.loading || false)
 const error = computed(() => store.error || null)
@@ -231,8 +245,8 @@ const error = computed(() => store.error || null)
 const startService = () => store.startService()
 const stopService = () => store.stopService()
 
-const toggleMapping = (source, target, enable) => {
-  store.togglePathMapping(source, target, enable)
+const toggleMapping = (source, mappingType, target, enable) => {
+  store.togglePathMapping(source, mappingType || 'media', target, enable)
 }
 
 const toggleExtension = (extension, enable) => {
@@ -564,6 +578,36 @@ onUnmounted(() => {
   font-weight: bold;
 }
 
+.mapping-type-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.375rem 0.875rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 60px;
+  width: 60px;
+}
+
+.badge-media {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(16, 185, 129, 0.15));
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.1);
+}
+
+.badge-strm {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(139, 92, 246, 0.15));
+  color: #8b5cf6;
+  border: 1px solid rgba(139, 92, 246, 0.4);
+  box-shadow: 0 2px 4px rgba(139, 92, 246, 0.1);
+}
+
 .mapping-toggle {
   display: flex;
   align-items: center;
@@ -866,18 +910,51 @@ input:disabled + .switch-slider {
   }
   
   .mapping-item {
-    grid-template-columns: 1fr;
-    gap: 1rem;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 1.5rem;
+    padding-top: 4rem; /* Space for badge and toggle row */
   }
   
   .mapping-info {
+    display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-    align-items: stretch;
+    gap: 0.25rem;
+    align-items: flex-start !important;
+    margin-top: 0.5rem; /* Additional spacing after badge/toggle row */
+    width: 100%;
+  }
+  
+  .mapping-source,
+  .mapping-target {
+    text-align: left !important;
+    align-self: flex-start !important;
+    width: 100%;
+    flex: none;
+  }
+  
+  .mapping-arrow {
+    text-align: left !important;
+    align-self: flex-start !important;
+    margin: 0.125rem 0;
+  }
+  
+  /* Position badge and toggle on same line at top */
+  .mapping-info .mapping-type-badge {
+    position: absolute;
+    top: 1.5rem;
+    left: 1.5rem;
+    margin: 0;
   }
   
   .mapping-toggle {
-    justify-content: center;
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    justify-content: flex-end;
+    margin: 0;
   }
   
   .extension-list {
